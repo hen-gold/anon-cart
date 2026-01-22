@@ -22,7 +22,7 @@
 
 ## Slack Communications
 
-- **Key discussions**: 20+ messages in channel C0A6AMMMTFY
+- **Key discussions**: 20+ messages in channel #anon-cart
 
 ### Decisions
 
@@ -39,15 +39,15 @@
   - Master doc updated
 
 - **Blockers/Dependencies**:
-  - Need to verify plans package picker in account level context (U0UEZE475, U059S071SSZ to verify in playground)
-  - Need to map all errors for UX coverage (U05J8235L06, U07CMQF9PEF to provide error mapping)
-  - Privacy with 100% discount requirement needs clarification (U02QNEXLC3A requesting clarification from U09K614FQP9)
+  - Need to verify plans package picker in account level context (gavinr, shayg to verify in playground)
+  - Need to map all errors for UX coverage (shahari, talso to provide error mapping)
+  - Privacy with 100% discount requirement needs clarification (bard requesting clarification from talso)
 
 ## Open Action Items
 
-- **Verify plans package picker can operate in account level context** (Owner: U0UEZE475, U059S071SSZ) [Slack]
-- **Map all errors available for UX coverage** (Owner: U05J8235L06, U07CMQF9PEF) [Slack]
-- **Clarify Privacy with 100% discount requirements and use cases** (Owner: U09K614FQP9) [Slack]
+- **Verify plans package picker can operate in account level context** (Owner: gavinr, shayg) [#anon-cart]
+- **Map all errors available for UX coverage** (Owner: shahari, talso) [#anon-cart]
+- **Clarify Privacy with 100% discount requirements and use cases** (Owner: talso) [#anon-cart]
 - **Work on DOM2-6652**: [BED] Implement AnonTestsSeedPlugin for Conductor (Owner: Shachar Reshef) [Jira]
 - **Work on DOM2-6651**: [BED] Implement AnonSeedService for Anonymous Tests Conduction (Owner: Shachar Reshef) [Jira]
 

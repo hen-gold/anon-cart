@@ -7,6 +7,7 @@ Generates daily digest reports with summaries of all changes.
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+from reporting.id_resolver import IDResolver
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class DailyDigest:
         self.send_slack_dm = config.get('reporting', {}).get('send_slack_dm', False)
         self.slack_config = config.get('slack', {})
         self.last_digest_date = None
+        self.id_resolver = IDResolver(config)
         
     def should_generate(self):
         """
@@ -67,6 +69,9 @@ class DailyDigest:
                 slack_summary,
                 context_updates
             )
+            
+            # Resolve all IDs in the content before writing
+            content = self.id_resolver.resolve_all_ids(content)
             
             # Write digest file
             self.reports_dir.mkdir(parents=True, exist_ok=True)
@@ -173,6 +178,8 @@ class DailyDigest:
             if jira_changes.get('created'):
                 for issue in jira_changes['created']:
                     assignee = issue.get('assignee', 'Unassigned')
+                    # Resolve user ID if it's a Slack user ID
+                    assignee = self.id_resolver.resolve_user_id(assignee) if assignee.startswith('U') else assignee
                     priority = issue.get('priority', '')
                     priority_str = f" ({priority})" if priority else ""
                     content += f"- **{issue.get('issue', 'Unknown')}**: Created - {issue.get('summary', 'No summary')} (Assignee: {assignee}{priority_str})\n"
@@ -181,6 +188,8 @@ class DailyDigest:
             if jira_changes.get('status_changes'):
                 for change in jira_changes['status_changes'][:10]:
                     assignee = change.get('assignee', '')
+                    # Resolve user ID if it's a Slack user ID
+                    assignee = self.id_resolver.resolve_user_id(assignee) if assignee and assignee.startswith('U') else assignee
                     assignee_str = f" (Assignee: {assignee})" if assignee else ""
                     content += f"- **{change.get('issue', 'Unknown')}**: Status changed from `{change.get('old', '?')}` → `{change.get('new', '?')}`{assignee_str}\n"
             
@@ -192,7 +201,12 @@ class DailyDigest:
             # Assignee changes
             if jira_changes.get('assignee_changes'):
                 for change in jira_changes['assignee_changes'][:5]:
-                    content += f"- **{change.get('issue', 'Unknown')}**: Assignee changed from `{change.get('old', 'Unassigned')}` → `{change.get('new', 'Unassigned')}`\n"
+                    old_assignee = change.get('old', 'Unassigned')
+                    new_assignee = change.get('new', 'Unassigned')
+                    # Resolve user IDs
+                    old_assignee = self.id_resolver.resolve_user_id(old_assignee) if old_assignee.startswith('U') else old_assignee
+                    new_assignee = self.id_resolver.resolve_user_id(new_assignee) if new_assignee.startswith('U') else new_assignee
+                    content += f"- **{change.get('issue', 'Unknown')}**: Assignee changed from `{old_assignee}` → `{new_assignee}`\n"
         else:
             content += "- No Jira updates detected\n"
         
@@ -201,7 +215,9 @@ class DailyDigest:
         # Slack Communications section
         content += "## Slack Communications\n\n"
         if slack_summary['messages_count'] > 0:
-            content += f"- Key discussions: {slack_summary['messages_count']} messages\n"
+            channel_id = self.slack_config.get('channel_id', '')
+            channel_name = self.id_resolver.resolve_channel_id(channel_id) if channel_id else '#anon-cart'
+            content += f"- Key discussions: {slack_summary['messages_count']} messages in channel {channel_name}\n"
             
             # Decisions with actual decision text
             if slack_summary.get('decisions'):
@@ -209,12 +225,20 @@ class DailyDigest:
                 for decision in slack_summary['decisions']:
                     decision_text = decision.get('decision', 'No decision text')
                     author = decision.get('author', 'Unknown')
+                    # Resolve user IDs in author field
+                    author = self.id_resolver.resolve_user_id(author) if author.startswith('U') else author
                     context = decision.get('context', '')
                     context_str = f" ({context})" if context else ""
                     content += f"- **Decision**: {decision_text} (by {author}{context_str})\n"
             
             if slack_summary.get('blockers'):
                 content += f"\n- Blockers: {len(slack_summary['blockers'])} blocker(s) discussed\n"
+                # Resolve user IDs in blocker descriptions
+                for blocker in slack_summary.get('blockers', [])[:5]:
+                    blocker_text = blocker.get('text', '')
+                    blocker_text = self.id_resolver.resolve_all_ids(blocker_text)
+                    content += f"  - {blocker_text}\n"
+            
             if slack_summary.get('status_updates'):
                 content += f"- Status updates: {len(slack_summary['status_updates'])} update(s)\n"
         else:
@@ -243,7 +267,23 @@ class DailyDigest:
         if action_items:
             for item in action_items[:15]:  # Limit to 15 items
                 owner = item.get('owner', 'Unassigned')
+                # Resolve user IDs (handle comma-separated list)
+                if owner and ',' in owner:
+                    owners = [o.strip() for o in owner.split(',')]
+                    resolved_owners = []
+                    for o in owners:
+                        if o.startswith('U'):
+                            resolved_owners.append(self.id_resolver.resolve_user_id(o))
+                        else:
+                            resolved_owners.append(o)
+                    owner = ', '.join(resolved_owners)
+                elif owner and owner.startswith('U'):
+                    owner = self.id_resolver.resolve_user_id(owner)
+                
                 source = item.get('source', '')
+                # Resolve channel IDs in source
+                if source == 'Slack':
+                    source = '#anon-cart'  # Use channel name instead
                 source_str = f" [{source}]" if source else ""
                 content += f"- **{item.get('item', 'Unknown action')}** (Owner: {owner}{source_str})\n"
         else:
@@ -419,5 +459,8 @@ class DailyDigest:
         # Add link to full digest (if hosted or accessible)
         message += f"\n📄 Full digest: `{digest_file}`\n"
         message += "\n_Generated by Context Synchronization Agent_"
+        
+        # Resolve all IDs in the message
+        message = self.id_resolver.resolve_all_ids(message)
         
         return message
