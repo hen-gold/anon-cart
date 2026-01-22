@@ -189,6 +189,7 @@ See [sources/slack/channel-info.md](sources/slack/channel-info.md) for detailed 
 - **tech-stack.md**: When adding dependencies or changing tech
 - **workflow.md**: When practices evolve
 - **tracks.md**: When track status changes
+- **decisions.md**: When significant product or technical decisions are made
 
 ### Update Process
 1. Identify needed update

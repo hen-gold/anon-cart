@@ -9,6 +9,7 @@ Navigation hub for all context-driven development artifacts.
 - [tech-stack.md](tech-stack.md) - Technology choices and dependencies
 - [workflow.md](workflow.md) - Development practices and quality gates
 - [tracks.md](tracks.md) - Work unit registry
+- [decisions.md](decisions.md) - Decision log for product and technical decisions
 
 ## Source Data
 
