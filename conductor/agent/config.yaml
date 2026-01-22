@@ -36,7 +36,7 @@ slack:
   workspace: wix.slack.com
   read_only: true
   # Daily digest DM recipient
-  digest_recipient_email: ""  # Set your Slack email here to receive daily digest DMs
+  digest_recipient_email: "hengo@wix.com"  # Set your Slack email here to receive daily digest DMs
   # Alternative: use user_id if you know your Slack user ID
   # digest_recipient_user_id: ""
 
