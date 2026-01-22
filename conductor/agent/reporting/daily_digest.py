@@ -377,7 +377,7 @@ class DailyDigest:
         lines = digest_content.split('\n')
         
         # Build message header
-        message = f"📊 *Daily Digest - {datetime.now().strftime('%Y-%m-%d')}*\n\n"
+        message = f"*anon-cart Daily Status {datetime.now().strftime('%Y-%m-%d')}*\n\n"
         
         # Extract Jira Updates section
         jira_start = None
