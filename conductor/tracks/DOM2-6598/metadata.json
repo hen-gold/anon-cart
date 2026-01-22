@@ -1,0 +1,13 @@
+{
+  "key": "DOM2-6598",
+  "summary": "[BED] - Implement polymorphism for CartSdl",
+  "status": "In Progress",
+  "priority": "High",
+  "storyPoints": 2,
+  "assignee": "Shahar Itzko",
+  "epic": "DOM2-6162",
+  "type": "Task",
+  "team": "BED",
+  "created": "2025-11-19",
+  "updated": "2026-01-20"
+}

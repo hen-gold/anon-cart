@@ -1,0 +1,13 @@
+{
+  "key": "DOM2-6584",
+  "summary": "[FED] - Anon Cart Page",
+  "status": "Backlog",
+  "priority": "Minor",
+  "storyPoints": 5,
+  "assignee": "Unassigned",
+  "epic": "DOM2-6162",
+  "type": "Story",
+  "team": "FED",
+  "created": "2025-11-19",
+  "updated": "2026-01-20"
+}

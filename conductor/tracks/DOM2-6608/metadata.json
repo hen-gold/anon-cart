@@ -1,0 +1,13 @@
+{
+  "key": "DOM2-6608",
+  "summary": "[BED] - Update the design to support new requirement of anonymous line item discounts",
+  "status": "Backlog",
+  "priority": "Blocker",
+  "storyPoints": 1,
+  "assignee": "Shahar Itzko",
+  "epic": "DOM2-6162",
+  "type": "Task",
+  "team": "BED",
+  "created": "2025-11-19",
+  "updated": "2026-01-20"
+}
