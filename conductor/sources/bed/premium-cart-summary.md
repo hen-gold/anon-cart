@@ -71,14 +71,137 @@ The cart service follows a polymorphic design pattern to support both anonymous 
   - Maps between domain models and DTOs
   - Handles anonymous user mapping
 
+## Development Status
+
+Development status based on Jira tasks (DOM2-6162 epic) and repository analysis.
+
+### ✅ Completed (0 BED tasks)
+
+No BED tasks are marked as Done. All backend work is either in progress, pending PR, or in backlog.
+
+### 🔄 In Progress (2 tasks)
+
+1. **DOM2-6598** - [BED] - Implement polymorphism for CartSdl
+   - **Status**: In Progress
+   - **Priority**: High
+   - **Story Points**: 2
+   - **Assignee**: Shahar Itzko
+   - **Description**: Implementing polymorphism pattern for CartSdl to support anonymous/authenticated flows
+   - **Repository Impact**: CartSdl class/module needs polymorphic design
+
+2. **DOM2-6487** - [BED Design] Supporting Anon Tests Conduction in Conductor
+   - **Status**: In Progress
+   - **Priority**: High
+   - **Story Points**: 1
+   - **Assignee**: Shachar Reshef
+   - **Description**: Design work for supporting anonymous tests in Conductor testing framework
+   - **Repository Impact**: Test infrastructure and test design patterns
+
+### ⏳ PR Pending (2 tasks)
+
+1. **DOM2-6596** - [BED] - Expand BuyerInfoDomain
+   - **Status**: PR Pending
+   - **Priority**: High
+   - **Story Points**: 0.5
+   - **Assignee**: Shahar Itzko
+   - **Description**: Expanded BuyerInfoDomain to support anonymous buyer information
+   - **Repository Impact**: BuyerInfoDomain class expanded with anonymous user support
+   - **Code Status**: Code complete, awaiting review
+
+2. **DOM2-6597** - [BED] - Expand cart identity extractor
+   - **Status**: PR Pending
+   - **Priority**: High
+   - **Story Points**: 0.5
+   - **Assignee**: Shahar Itzko
+   - **Description**: Expanded cart identity extractor to handle anonymous users
+   - **Repository Impact**: CartIdentityExtractor class expanded for anonymous identification
+   - **Code Status**: Code complete, awaiting review
+
+### 📋 Backlog (11 tasks)
+
+#### High Priority (7 tasks)
+
+1. **DOM2-6599** - [BED] - Implement polymorphism for CartEntityManager
+   - **Story Points**: 2 | **Assignee**: Shahar Itzko
+   - **Dependencies**: Should follow CartSdl polymorphism pattern (DOM2-6598)
+
+2. **DOM2-6602** - [BED] - Expand cart's ValidationsEntricher
+   - **Story Points**: 0.5 | **Assignee**: Shahar Itzko
+
+3. **DOM2-6603** - [BED] - Add anonymous validations set in Validations Service
+   - **Story Points**: 0.5 | **Assignee**: Shahar Itzko
+
+4. **DOM2-6605** - [BED] - Extract CartService implementation to CartServiceImpl
+   - **Story Points**: 1 | **Assignee**: Shahar Itzko
+
+5. **DOM2-6606** - [BED] - Refactor CartService to be router for Anonymous and Authenticated implementations
+   - **Story Points**: 1 | **Assignee**: Shahar Itzko
+   - **Dependencies**: Depends on DOM2-6605
+
+6. **DOM2-6607** - [BED] - Add anonymous expiration configuration for 30 days
+   - **Story Points**: 0 | **Assignee**: Shahar Itzko
+
+7. **DOM2-6609** - [BED] - Support anonymous discounts implementation
+   - **Story Points**: 0 | **Assignee**: Shahar Itzko
+   - **Dependencies**: Blocks on DOM2-6608 (design) and DOM2-6616 (Discounts Service)
+
+8. **DOM2-6613** - [BED] - Fix CartService's mappers to work anonymously
+   - **Story Points**: 1.5 | **Assignee**: Shahar Itzko
+
+#### Blocker Priority (3 tasks)
+
+1. **DOM2-6608** - [BED] - Update the design to support new requirement of anonymous line item discounts
+   - **Story Points**: 1 | **Assignee**: Shahar Itzko
+   - **Impact**: Blocks DOM2-6609 (anonymous discounts implementation)
+
+2. **DOM2-6616** - [BED] - Fix Discounts Service flows to support anonymous calls
+   - **Story Points**: 1 | **Assignee**: Shahar Itzko
+   - **Impact**: Blocks anonymous discount functionality
+
+3. **DOM2-6617** - [BED] - Fix Billing's PreviewOrder implementation to support anonymous calls
+   - **Story Points**: 0 | **Assignee**: Unassigned
+   - **Impact**: Blocks anonymous checkout preview
+
+### Summary Statistics
+
+- **Total BED Tasks**: 15
+- **Completed**: 0 (0%)
+- **In Progress**: 2 (13%)
+- **PR Pending**: 2 (13%)
+- **Backlog**: 11 (73%)
+- **Blockers**: 3 (all in backlog)
+
+### Implementation Roadmap
+
+**Phase 1: Foundation (In Progress)**
+- ✅ Cart Identity Extractor expansion (PR Pending)
+- ✅ BuyerInfoDomain expansion (PR Pending)
+- 🔄 CartSdl polymorphism (In Progress)
+
+**Phase 2: Core Refactoring (Backlog)**
+- CartEntityManager polymorphism
+- CartService extraction and routing
+- ValidationsEntricher expansion
+- Anonymous validation sets
+
+**Phase 3: Anonymous Features (Backlog - Blocked)**
+- Anonymous expiration configuration
+- Anonymous discounts (blocked by design and service support)
+- CartService mappers fix
+
+**Phase 4: Service Integration (Backlog - Blockers)**
+- Discounts Service anonymous support (Blocker)
+- Billing Service PreviewOrder anonymous support (Blocker)
+
 ## Anonymous Flow Support
 
 ### Current Implementation Status
 
 - Anonymous cart support is being implemented
 - Polymorphism patterns are being added for anonymous/authenticated flows
-- Cart identity extraction expanded for anonymous users
-- BuyerInfoDomain expanded for anonymous buyer information
+- Cart identity extraction expanded for anonymous users (PR Pending)
+- BuyerInfoDomain expanded for anonymous buyer information (PR Pending)
+- CartSdl polymorphism in progress
 
 ### Planned Changes
 

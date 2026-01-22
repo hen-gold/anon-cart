@@ -167,23 +167,161 @@ This repository contains the frontend implementation for anonymous cart function
   - Button functionality
   - Anonymous user support
 
+## Development Status
+
+Development status based on Jira tasks (DOM2-6162 epic) and repository analysis.
+
+### ✅ Completed (2 tasks)
+
+1. **DOM2-6454** - [FED] Dev Design
+   - **Status**: Done
+   - **Priority**: Minor
+   - **Story Points**: 3
+   - **Assignee**: Matan Lasry
+   - **Description**: Frontend development design completed
+   - **Repository Impact**: Design documentation and architecture decisions
+
+2. **DOM2-6587** - [FED] - Cart anonymous monorepo
+   - **Status**: Done
+   - **Priority**: Minor
+   - **Story Points**: 1
+   - **Assignee**: Matan Lasry
+   - **Description**: Monorepo setup for anonymous cart project
+   - **Repository Impact**: Monorepo structure configured and operational
+
+### 🔄 In Progress (0 tasks)
+
+No FED tasks currently in progress.
+
+### ⏳ PR Pending (2 tasks)
+
+1. **PREM2-28704** - [Anonymous] Make Eclipse PP props optional & update RouteGuard for anonymous flow
+   - **Status**: PR Pending
+   - **Priority**: Major
+   - **Story Points**: 0.5
+   - **Assignee**: Shay Tal-Gerby
+   - **Description**: Make Eclipse PP props optional and update RouteGuard for anonymous flow
+   - **Repository Impact**: RouteGuard component updated, Eclipse props made optional
+   - **Code Status**: Code complete, awaiting review
+
+2. **PREM2-28706** - [Anonymous] Show FeaturesGrid CTA buttons for anonymous users
+   - **Status**: PR Pending
+   - **Priority**: Major
+   - **Story Points**: 0.5
+   - **Assignee**: Shay Tal-Gerby
+   - **Description**: Enable FeaturesGrid CTA buttons for anonymous users
+   - **Repository Impact**: FeaturesGrid component updated for anonymous support
+   - **Code Status**: Code complete, awaiting review
+
+### 📋 Backlog (9 FED tasks)
+
+#### High Priority (1 task)
+
+1. **DOM2-6506** - [FED] Anon Premium package picker & billing cycle
+   - **Story Points**: 3 | **Assignee**: Unassigned
+   - **Description**: Premium package selection with billing cycle picker
+
+#### Minor Priority (8 tasks)
+
+1. **DOM2-6583** - [FED] - Anon Mailbox package picker
+   - **Story Points**: 4 | **Assignee**: Unassigned
+
+2. **DOM2-6584** - [FED] - Anon Cart Page
+   - **Story Points**: 5 | **Assignee**: Unassigned
+   - **Description**: Main anonymous cart page
+
+3. **DOM2-6585** - [FED] - Cart validations handling
+   - **Story Points**: 3 | **Assignee**: Unassigned
+
+4. **DOM2-6586** - [FED] - MiniCart Integration
+   - **Story Points**: 3 | **Assignee**: Unassigned
+
+5. **DOM2-6601** - [FED] - Recommendation Upsells
+   - **Story Points**: 3 | **Assignee**: Unassigned
+
+6. **DOM2-6604** - [FED] - Success Page
+   - **Story Points**: 2 | **Assignee**: Unassigned
+
+7. **DOM2-6611** - [FED] - Contact Form integration
+   - **Story Points**: 2 | **Assignee**: Unassigned
+
+8. **DOM2-6612** - [FED] - Split Page
+   - **Story Points**: 1 | **Assignee**: Or Efrat
+
+### Premium/Eclipse Integration (2 tasks in backlog)
+
+1. **PREM2-28705** - [Anonymous] Verify DoublePurchase & SwitchProduct modules handle missing siteGuid gracefully
+   - **Status**: Backlog
+   - **Priority**: Major
+   - **Story Points**: 0.5
+   - **Assignee**: Shay Tal-Gerby
+
+2. **PREM2-28707** - [Anonymous] Expose standalone components and pages via Eclipse SDK
+   - **Status**: Backlog
+   - **Priority**: Major
+   - **Story Points**: 1
+   - **Assignee**: Shay Tal-Gerby
+
+### Summary Statistics
+
+- **Total FED Tasks**: 11
+- **Completed**: 2 (18%)
+- **In Progress**: 0 (0%)
+- **PR Pending**: 2 (18%)
+- **Backlog**: 7 (64%)
+
+- **Premium/Eclipse Tasks**: 4
+- **PR Pending**: 2 (50%)
+- **Backlog**: 2 (50%)
+
+### Implementation Roadmap
+
+**Phase 1: Foundation (Completed)**
+- ✅ Dev Design (Done)
+- ✅ Monorepo setup (Done)
+
+**Phase 2: Eclipse Integration (PR Pending)**
+- RouteGuard updates (PR Pending)
+- FeaturesGrid CTA (PR Pending)
+
+**Phase 3: Core Components (Backlog)**
+- Anon Cart Page (High priority, 5 SP)
+- Package pickers (Premium, Mailbox)
+- MiniCart integration
+- Cart validations handling
+
+**Phase 4: User Experience (Backlog)**
+- Success Page
+- Split Page
+- Recommendation Upsells
+- Contact Form integration
+
+**Phase 5: Eclipse SDK (Backlog)**
+- Standalone components export
+- DoublePurchase/SwitchProduct verification
+
 ## Anonymous Flow Features
 
 ### Implemented
 - ✅ Monorepo setup completed (DOM2-6587)
+- ✅ Dev Design completed (DOM2-6454)
+
+### PR Pending (Ready for Review)
+- RouteGuard for anonymous flow (PREM2-28704)
+- FeaturesGrid CTA for anonymous users (PREM2-28706)
 
 ### In Progress / Planned
 
-#### Core Cart Functionality
-- Anonymous cart page (DOM2-6584)
+#### Core Cart Functionality (Backlog)
+- Anonymous cart page (DOM2-6584) - High priority, 5 SP
 - Cart validations handling (DOM2-6585)
 - MiniCart integration (DOM2-6586)
 
-#### Package Selection
-- Anon Premium package picker & billing cycle (DOM2-6506)
+#### Package Selection (Backlog)
+- Anon Premium package picker & billing cycle (DOM2-6506) - High priority
 - Anon Mailbox package picker (DOM2-6583)
 
-#### User Experience
+#### User Experience (Backlog)
 - Success pages (DOM2-6604)
 - Split page functionality (DOM2-6612)
 - Recommendation upsells (DOM2-6601)
