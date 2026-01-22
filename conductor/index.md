@@ -35,6 +35,12 @@ Organized source data from various sources:
 
 Individual track directories are in [tracks/](tracks/).
 
+## Agent
+
+- [Agent README](agent/README.md) - Context synchronization agent documentation
+- [CHANGELOG.md](CHANGELOG.md) - Live changelog of all changes
+- [Reports](reports/) - Daily digest reports
+
 ## Context-Driven Development
 
 This structure follows the [Context-Driven Development](https://github.com/wshobson/agents) methodology.

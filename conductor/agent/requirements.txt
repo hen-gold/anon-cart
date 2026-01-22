@@ -1,0 +1,14 @@
+# Context Synchronization Agent Dependencies
+
+# Core dependencies
+PyYAML>=6.0
+schedule>=1.2.0
+
+# Webhook handlers (optional)
+flask>=2.3.0
+
+# Logging
+# Uses standard library logging
+
+# Date/time handling
+# Uses standard library datetime

@@ -1,0 +1,80 @@
+# Context Synchronization Agent Configuration
+
+repositories:
+  bed:
+    owner: wix-private
+    repo: premium
+    path: premium-server/premium-cart
+    branch: main
+    url: https://github.com/wix-private/premium/blob/6f4fed7906410a9b9d7c05e782dbba67dbabec5a/premium-server/premium-cart
+    read_only: true
+    
+  fed:
+    owner: wix-private
+    repo: premium-cart-anonymous
+    branch: main
+    url: https://github.com/wix-private/premium-cart-anonymous
+    read_only: true
+    
+  context:
+    owner: hen-gold
+    repo: anon-cart
+    branch: main
+    url: https://github.com/hen-gold/anon-cart
+    read_only: false  # Can write updates here
+
+jira:
+  epic_key: DOM2-6162
+  project_key: DOM2
+  base_url: https://wix.atlassian.net
+  epic_url: https://wix.atlassian.net/browse/DOM2-6162
+  read_only: true
+
+slack:
+  channel_id: C0A6AMMMTFY
+  channel_url: https://wix.slack.com/archives/C0A6AMMMTFY
+  workspace: wix.slack.com
+  read_only: true
+
+google_docs:
+  master_document_id: 1WaJH6C4jCMAqGaF-UoUGPFtkieWxfASaTZBMRUfi0mM
+  master_document_url: https://docs.google.com/document/d/1WaJH6C4jCMAqGaF-UoUGPFtkieWxfASaTZBMRUfi0mM/edit
+  dependencies_sheet_id: 1DugSrwbNke5ExpA201Tp_IdQeb715DxKrf2gR8ltmSc
+  dependencies_sheet_url: https://docs.google.com/spreadsheets/d/1DugSrwbNke5ExpA201Tp_IdQeb715DxKrf2gR8ltmSc/edit
+  read_only: true
+
+reporting:
+  daily_digest_time: "18:00"  # 6 PM daily
+  changelog_file: conductor/CHANGELOG.md
+  reports_dir: conductor/reports
+  digest_retention_days: 30  # Keep daily digests for 30 days
+
+sync:
+  enabled_triggers:
+    - code_commits
+    - jira_updates
+    - doc_changes
+    - scheduled
+  
+  check_intervals:
+    code_commits: 3600  # Check every hour
+    jira_updates: 1800  # Check every 30 minutes
+    doc_changes: 3600   # Check every hour
+    scheduled: 86400     # Daily check
+  
+  context_files:
+    bed_summary: conductor/sources/bed/premium-cart-summary.md
+    fed_summary: conductor/sources/fed/premium-cart-anonymous-summary.md
+    tech_stack: conductor/tech-stack.md
+    tracks: conductor/tracks.md
+    child_issues: conductor/sources/jira/child-issues.md
+    master_doc: conductor/sources/docs/master-document.md
+    dependencies: conductor/sources/docs/dependencies.md
+    product: conductor/product.md
+    decisions: conductor/decisions.md
+
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  log_file: conductor/agent/logs/sync-agent.log
+  max_log_size_mb: 10
+  backup_count: 5

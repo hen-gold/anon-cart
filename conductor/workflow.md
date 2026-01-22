@@ -196,3 +196,40 @@ See [sources/slack/channel-info.md](sources/slack/channel-info.md) for detailed 
 2. Make change in appropriate artifact
 3. Commit with clear message
 4. Review in PR if significant change
+
+## Context Synchronization Agent
+
+### Automated Synchronization
+
+The context synchronization agent automatically monitors and updates context documents based on:
+
+- **Code Commits**: Updates repository summaries when code changes
+- **Jira Updates**: Updates tracks.md and issue documentation when tickets change
+- **Document Changes**: Updates master document and dependencies when Google Docs/Sheets change
+- **Slack Communications**: Extracts decisions and key information from Slack
+
+### Agent Usage
+
+The agent can be run:
+- **Manually**: `python conductor/agent/sync-agent.py --mode full`
+- **Scheduled**: Via cron job or scheduled task
+- **Webhooks**: Automatically triggered by GitHub/Jira events
+
+See [agent/README.md](agent/README.md) for detailed usage instructions.
+
+### Daily Digest
+
+The agent generates a daily digest report at `conductor/reports/daily-digest-YYYY-MM-DD.md` containing:
+- Summary of code commits
+- Jira ticket status changes
+- Slack communication summary
+- Context document updates
+- Blockers and dependencies
+
+### Live Changelog
+
+All changes are logged in real-time to `conductor/CHANGELOG.md` with:
+- Timestamps
+- Change type (Code Commit, Jira Update, Document Update, etc.)
+- Context files updated
+- Impact description
