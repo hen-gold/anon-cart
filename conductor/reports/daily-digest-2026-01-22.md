@@ -6,37 +6,50 @@
 
 ## Jira Updates
 
-- **4 issues updated** in the last 24 hours:
-  - Issues updated: 3694721, 3694719, 3678965, 3672364
-  - All child issues of epic DOM2-6162
+- **DOM2-6652**: Created - [BED] Implement AnonTestsSeedPlugin for Conductor (Assignee: Shachar Reshef, Priority: Minor)
+  - Summary updated from "[BED] Create AnonPlugin" to "[BED] Implement AnonTestsSeedPlugin for Conductor"
+  - Story Points set to 4
+  - Assigned to Shachar Reshef
+
+- **DOM2-6651**: Created - [BED] Implement AnonSeedService for Anonymous Tests Conduction (Assignee: Shachar Reshef, Priority: Minor)
+
+- **DOM2-6587**: Status changed from `In Progress` → `Done` (Assignee: Matan Lasry)
+  - Issue completed: [FED] - Cart anonymous monorepo
+
+- **DOM2-6487**: Status changed from `In Progress` → `Done` (Assignee: Shachar Reshef)
+  - Issue completed: [BED Design] Supporting Anon Tests Conduction in Conductor
+  - Priority changed from `Minor` → `High` (on 2026-01-14)
 
 ## Slack Communications
 
 - **Key discussions**: 20+ messages in channel C0A6AMMMTFY
-- **Recent activity**:
-  - Relevant docs shared (Master doc, Figma, User Stories, Jira Epic)
-  - Request for updated User Stories doc and Jira EPIC
-  - Discussion about error mapping for UX coverage
-  - Question about availability check decisions
-  - New requirement discussion: Privacy with 100% discount to cart users
-  - FED design summary with closed points and remaining TBDs
-  - Sync meetings scheduled for Monday and Wednesday
-  - Master doc updated notification
-  - Anonymous cart backend design shared
-  - Product question regarding validations (GWS products)
 
-- **Decisions**: 
-  - FED design decisions on BrowserRouter, cartIntent naming, availability validation
-  - Both proposals for availability validation are valid (background execution preferred)
+### Decisions
+
+- **Decision**: Use `BrowserRouter` for back navigation from view cart to flow (plans/mailbox package picker steps) (by FED team)
+- **Decision**: Keep `flowType` and `cartId` as separate parameters (still both needed) (by FED team)
+- **Decision**: Align `cartIntent` naming to `cartEntryPoint` for last intent + default domains for empty cart (by FED team)
+- **Decision**: Use recommendation service for both cases - Cart/miniCart and successPage with customParams providing cartEntryPoint and lineItems (by FED team)
+- **Decision**: Both proposals for availability validation are valid - background execution preferred (by FED team)
+  - Either trigger background `getCart(skipValidations:false)` (optimistic UI) or run `checkDomainAvailability` in background when domain is in cart
 
 - **Status updates**:
   - FED design starts in D6
   - 20-minute syncs scheduled for Monday and Wednesday
+  - Master doc updated
 
 - **Blockers/Dependencies**:
-  - Need to verify plans package picker in account level context
-  - Need to map all errors for UX coverage
-  - Privacy with 100% discount requirement needs clarification
+  - Need to verify plans package picker in account level context (U0UEZE475, U059S071SSZ to verify in playground)
+  - Need to map all errors for UX coverage (U05J8235L06, U07CMQF9PEF to provide error mapping)
+  - Privacy with 100% discount requirement needs clarification (U02QNEXLC3A requesting clarification from U09K614FQP9)
+
+## Open Action Items
+
+- **Verify plans package picker can operate in account level context** (Owner: U0UEZE475, U059S071SSZ) [Slack]
+- **Map all errors available for UX coverage** (Owner: U05J8235L06, U07CMQF9PEF) [Slack]
+- **Clarify Privacy with 100% discount requirements and use cases** (Owner: U09K614FQP9) [Slack]
+- **Work on DOM2-6652**: [BED] Implement AnonTestsSeedPlugin for Conductor (Owner: Shachar Reshef) [Jira]
+- **Work on DOM2-6651**: [BED] Implement AnonSeedService for Anonymous Tests Conduction (Owner: Shachar Reshef) [Jira]
 
 ## Context Updates
 
@@ -47,6 +60,7 @@
 
 - Total changes: 4+ (Jira updates + Slack activity)
 - Blockers: 3 (plans package picker verification, error mapping, privacy discount clarification)
-- Decisions: 2 (FED design decisions, availability validation approach)
+- Decisions: 5 (FED design decisions, availability validation approach)
 - Context files updated: 1-2
 - Slack messages: 20+ in last 24 hours
+- Open action items: 5

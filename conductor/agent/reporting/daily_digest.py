@@ -103,11 +103,14 @@ class DailyDigest:
         # TODO: Collect Jira changes from:
         # - CHANGELOG.md entries
         # - Or from Jira sync module
+        # - Use MCP-S Jira tools to get changelog for issues
         
         return {
-            'status_changes': [],
-            'new_issues': [],
-            'priority_changes': [],
+            'status_changes': [],  # Format: {'issue': 'DOM2-XXX', 'old': 'In Progress', 'new': 'Done', 'assignee': 'Name'}
+            'new_issues': [],      # Format: {'issue': 'DOM2-XXX', 'summary': '...', 'assignee': 'Name', 'priority': 'High'}
+            'priority_changes': [], # Format: {'issue': 'DOM2-XXX', 'old': 'High', 'new': 'Blocker'}
+            'assignee_changes': [], # Format: {'issue': 'DOM2-XXX', 'old': 'Name1', 'new': 'Name2'}
+            'created': [],         # Format: {'issue': 'DOM2-XXX', 'summary': '...', 'assignee': 'Name'}
             'total': 0
         }
     
@@ -117,10 +120,11 @@ class DailyDigest:
         
         return {
             'messages_count': 0,
-            'decisions': [],
+            'decisions': [],  # Format: {'decision': 'Actual decision text', 'context': '...', 'author': 'Name'}
             'blockers': [],
             'status_updates': [],
-            'dependencies': []
+            'dependencies': [],
+            'action_items': []  # Format: {'item': 'Action description', 'owner': 'Name/UserID', 'context': '...'}
         }
     
     def _collect_context_updates(self):
@@ -165,16 +169,30 @@ class DailyDigest:
         # Jira Updates section
         content += "## Jira Updates\n\n"
         if jira_changes['total'] > 0:
-            if jira_changes['status_changes']:
+            # New issues created
+            if jira_changes.get('created'):
+                for issue in jira_changes['created']:
+                    assignee = issue.get('assignee', 'Unassigned')
+                    priority = issue.get('priority', '')
+                    priority_str = f" ({priority})" if priority else ""
+                    content += f"- **{issue.get('issue', 'Unknown')}**: Created - {issue.get('summary', 'No summary')} (Assignee: {assignee}{priority_str})\n"
+            
+            # Status changes
+            if jira_changes.get('status_changes'):
                 for change in jira_changes['status_changes'][:10]:
-                    content += f"- {change.get('issue', 'Unknown')}: Status changed {change.get('old', '?')} → {change.get('new', '?')}\n"
+                    assignee = change.get('assignee', '')
+                    assignee_str = f" (Assignee: {assignee})" if assignee else ""
+                    content += f"- **{change.get('issue', 'Unknown')}**: Status changed from `{change.get('old', '?')}` → `{change.get('new', '?')}`{assignee_str}\n"
             
-            if jira_changes['new_issues']:
-                content += f"- {len(jira_changes['new_issues'])} new issues created\n"
-            
-            if jira_changes['priority_changes']:
+            # Priority changes
+            if jira_changes.get('priority_changes'):
                 for change in jira_changes['priority_changes'][:5]:
-                    content += f"- {change.get('issue', 'Unknown')}: Priority changed {change.get('old', '?')} → {change.get('new', '?')}\n"
+                    content += f"- **{change.get('issue', 'Unknown')}**: Priority changed from `{change.get('old', '?')}` → `{change.get('new', '?')}`\n"
+            
+            # Assignee changes
+            if jira_changes.get('assignee_changes'):
+                for change in jira_changes['assignee_changes'][:5]:
+                    content += f"- **{change.get('issue', 'Unknown')}**: Assignee changed from `{change.get('old', 'Unassigned')}` → `{change.get('new', 'Unassigned')}`\n"
         else:
             content += "- No Jira updates detected\n"
         
@@ -184,14 +202,52 @@ class DailyDigest:
         content += "## Slack Communications\n\n"
         if slack_summary['messages_count'] > 0:
             content += f"- Key discussions: {slack_summary['messages_count']} messages\n"
-            if slack_summary['decisions']:
-                content += f"- Decisions: {len(slack_summary['decisions'])} decision(s) discussed\n"
-            if slack_summary['blockers']:
-                content += f"- Blockers: {len(slack_summary['blockers'])} blocker(s) discussed\n"
-            if slack_summary['status_updates']:
+            
+            # Decisions with actual decision text
+            if slack_summary.get('decisions'):
+                content += f"\n### Decisions ({len(slack_summary['decisions'])})\n\n"
+                for decision in slack_summary['decisions']:
+                    decision_text = decision.get('decision', 'No decision text')
+                    author = decision.get('author', 'Unknown')
+                    context = decision.get('context', '')
+                    context_str = f" ({context})" if context else ""
+                    content += f"- **Decision**: {decision_text} (by {author}{context_str})\n"
+            
+            if slack_summary.get('blockers'):
+                content += f"\n- Blockers: {len(slack_summary['blockers'])} blocker(s) discussed\n"
+            if slack_summary.get('status_updates'):
                 content += f"- Status updates: {len(slack_summary['status_updates'])} update(s)\n"
         else:
             content += "- No significant Slack communications detected\n"
+        
+        content += "\n"
+        
+        # Open Action Items section
+        content += "## Open Action Items\n\n"
+        action_items = []
+        
+        # Collect action items from Slack
+        if slack_summary.get('action_items'):
+            action_items.extend(slack_summary['action_items'])
+        
+        # Collect action items from Jira (issues assigned but not done)
+        if jira_changes.get('status_changes'):
+            for change in jira_changes['status_changes']:
+                if change.get('new') not in ['Done', 'Closed', 'Resolved']:
+                    action_items.append({
+                        'item': f"Work on {change.get('issue', 'Unknown')}: {change.get('summary', '')}",
+                        'owner': change.get('assignee', 'Unassigned'),
+                        'source': 'Jira'
+                    })
+        
+        if action_items:
+            for item in action_items[:15]:  # Limit to 15 items
+                owner = item.get('owner', 'Unassigned')
+                source = item.get('source', '')
+                source_str = f" [{source}]" if source else ""
+                content += f"- **{item.get('item', 'Unknown action')}** (Owner: {owner}{source_str})\n"
+        else:
+            content += "- No open action items identified\n"
         
         content += "\n"
         
@@ -286,20 +342,82 @@ class DailyDigest:
                 summary_start = i
                 break
         
-        # Build message with summary and link to full digest
+        # Build message with key sections
         message = f"📊 *Daily Digest - {datetime.now().strftime('%Y-%m-%d')}*\n\n"
         
+        # Extract Jira Updates section
+        jira_start = None
+        jira_end = None
+        for i, line in enumerate(lines):
+            if line.strip() == '## Jira Updates':
+                jira_start = i
+            elif jira_start and line.startswith('## ') and jira_end is None:
+                jira_end = i
+                break
+        
+        if jira_start and jira_end:
+            message += "*Jira Updates:*\n"
+            for line in lines[jira_start+1:jira_end]:
+                if line.strip() and line.strip().startswith('-'):
+                    slack_line = line.replace('- ', '• ').replace('**', '*')
+                    message += f"{slack_line}\n"
+            message += "\n"
+        
+        # Extract Decisions section (under Slack Communications)
+        decisions_start = None
+        decisions_end = None
+        slack_section_start = None
+        for i, line in enumerate(lines):
+            if line.strip() == '## Slack Communications':
+                slack_section_start = i
+            elif slack_section_start and '### Decisions' in line:
+                decisions_start = i
+            elif decisions_start and (line.startswith('### ') or line.startswith('## ')) and decisions_end is None:
+                decisions_end = i
+                break
+            elif decisions_start and i == len(lines) - 1:
+                decisions_end = i + 1
+        
+        if decisions_start and decisions_end:
+            message += "*Decisions:*\n"
+            for line in lines[decisions_start+1:decisions_end]:
+                if line.strip() and line.strip().startswith('-'):
+                    slack_line = line.replace('- ', '• ').replace('**', '*')
+                    message += f"{slack_line}\n"
+            message += "\n"
+        
+        # Extract Action Items section
+        action_start = None
+        action_end = None
+        for i, line in enumerate(lines):
+            if line.strip() == '## Open Action Items':
+                action_start = i
+            elif action_start and line.startswith('## ') and action_end is None:
+                action_end = i
+                break
+            elif action_start and i == len(lines) - 1:
+                action_end = i + 1
+        
+        if action_start and action_end:
+            message += "*Open Action Items:*\n"
+            for line in lines[action_start+1:action_end]:
+                if line.strip() and line.strip().startswith('-'):
+                    slack_line = line.replace('- ', '• ').replace('**', '*')
+                    message += f"{slack_line}\n"
+            message += "\n"
+        
+        # Include summary section
         if summary_start:
-            # Include summary section
+            message += "*Summary:*\n"
             summary_lines = lines[summary_start+1:]
             for line in summary_lines:
-                if line.strip() and not line.startswith('#'):
+                if line.strip() and not line.startswith('#') and line.strip().startswith('-'):
                     # Convert markdown to Slack format
                     slack_line = line.replace('- ', '• ')
                     message += f"{slack_line}\n"
         
         # Add link to full digest (if hosted or accessible)
-        message += f"\n📄 Full digest saved to: `{digest_file}`\n"
+        message += f"\n📄 Full digest: `{digest_file}`\n"
         message += "\n_Generated by Context Synchronization Agent_"
         
         return message

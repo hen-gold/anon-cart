@@ -37,8 +37,7 @@ slack:
   read_only: true
   # Daily digest DM recipient
   digest_recipient_email: "hengo@wix.com"  # Set your Slack email here to receive daily digest DMs
-  # Alternative: use user_id if you know your Slack user ID
-  # digest_recipient_user_id: ""
+  digest_recipient_user_id: "U06LKHPJG3W"  # Your Slack user ID (found via MCP-S Slack tools)
 
 google_docs:
   master_document_id: 1WaJH6C4jCMAqGaF-UoUGPFtkieWxfASaTZBMRUfi0mM
