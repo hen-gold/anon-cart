@@ -139,6 +139,49 @@ Example: `feat(cart): add anonymous cart support`
 - Clear API contracts
 - Documented integration points
 
+## Team Communication
+
+### Primary Communication Channel
+
+**Slack Channel**: [C0A6AMMMTFY](https://wix.slack.com/archives/C0A6AMMMTFY)
+
+The main team communication channel for SF Purchase Flow (DOM2-6162) is on Slack. This channel is used for:
+- Real-time team coordination between BED, FED, UX, and Premium teams
+- Status updates and progress sharing
+- Discussion of blockers and dependencies
+- Architectural and design decisions
+- Quick questions and clarifications
+
+### Channel Access
+
+- **Channel ID**: C0A6AMMMTFY
+- **URL**: https://wix.slack.com/archives/C0A6AMMMTFY
+- **Workspace**: wix.slack.com
+
+### Agent Access
+
+Agents can read from this channel using MCP-S Slack tools:
+- `slack_get_channel_history` - Get recent messages
+- `slack_search-messages` - Search for specific content
+- `slack_get_thread_replies` - Read message threads
+
+See [sources/slack/channel-info.md](sources/slack/channel-info.md) for detailed access instructions.
+
+### Communication Patterns
+
+- **Status Updates**: Teams share progress updates in the channel
+- **Blockers**: Blockers and dependencies are discussed openly
+- **Decisions**: Important decisions are documented in Slack and should be reflected in context artifacts
+- **Coordination**: Cross-team coordination happens in real-time via Slack
+
+### When to Check Slack
+
+- Before starting work on a track
+- When checking for team updates
+- When looking for decisions or discussions
+- When investigating blockers or dependencies
+- When needing clarification on implementation details
+
 ## Context Artifact Maintenance
 
 ### When to Update

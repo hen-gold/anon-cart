@@ -26,6 +26,10 @@ Organized source data from various sources:
 - [premium-cart-summary.md](sources/bed/premium-cart-summary.md) - Backend repository analysis
 - [premium-cart-anonymous-summary.md](sources/fed/premium-cart-anonymous-summary.md) - Frontend repository analysis
 
+### Team Communication
+- [channel-info.md](sources/slack/channel-info.md) - Slack channel details and access
+- [README.md](sources/slack/README.md) - Slack integration overview
+
 ## Tracks
 
 Individual track directories are in [tracks/](tracks/).

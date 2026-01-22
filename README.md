@@ -38,6 +38,7 @@ All sources are read-only. This repository only contains documentation extracted
 - **Jira Epic**: [DOM2-6162](https://wix.atlassian.net/browse/DOM2-6162)
 - **Master Document**: [Domains Storefront Cart - Master Document](https://docs.google.com/document/d/1WaJH6C4jCMAqGaF-UoUGPFtkieWxfASaTZBMRUfi0mM/edit)
 - **Dependencies**: [Dependencies Spreadsheet](https://docs.google.com/spreadsheets/d/1DugSrwbNke5ExpA201Tp_IdQeb715DxKrf2gR8ltmSc/edit)
+- **Slack Channel**: [Team Communication Channel](https://wix.slack.com/archives/C0A6AMMMTFY) - Main team communication channel (Channel ID: C0A6AMMMTFY)
 
 ## Getting Started
 
