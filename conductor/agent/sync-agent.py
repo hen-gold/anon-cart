@@ -120,6 +120,7 @@ class SyncAgent:
             digest = self.daily_digest.generate()
             if digest:
                 logger.info(f"Daily digest generated: {digest}")
+                # Slack DM is sent automatically by DailyDigest.generate() if configured
             return digest
         return None
     

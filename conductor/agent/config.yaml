@@ -35,6 +35,10 @@ slack:
   channel_url: https://wix.slack.com/archives/C0A6AMMMTFY
   workspace: wix.slack.com
   read_only: true
+  # Daily digest DM recipient
+  digest_recipient_email: ""  # Set your Slack email here to receive daily digest DMs
+  # Alternative: use user_id if you know your Slack user ID
+  # digest_recipient_user_id: ""
 
 google_docs:
   master_document_id: 1WaJH6C4jCMAqGaF-UoUGPFtkieWxfASaTZBMRUfi0mM
@@ -48,6 +52,7 @@ reporting:
   changelog_file: conductor/CHANGELOG.md
   reports_dir: conductor/reports
   digest_retention_days: 30  # Keep daily digests for 30 days
+  send_slack_dm: true  # Send daily digest via Slack DM
 
 sync:
   enabled_triggers:

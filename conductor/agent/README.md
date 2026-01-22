@@ -102,6 +102,7 @@ Edit `config.yaml` to configure:
 - Google Doc/Sheet IDs
 - Sync intervals
 - Reporting settings
+- **Slack DM recipient**: Set `slack.digest_recipient_email` to receive daily digest via DM
 
 ## Architecture
 
@@ -132,6 +133,7 @@ Edit `config.yaml` to configure:
 - **Location**: `conductor/reports/daily-digest-YYYY-MM-DD.md`
 - **Frequency**: Daily at configured time
 - **Content**: Summary of all changes and communications
+- **Slack DM**: Automatically sent to configured recipient (set `slack.digest_recipient_email` in config)
 
 ## Integration with MCP-S Tools
 
@@ -189,12 +191,25 @@ The agent automatically updates:
 2. Integrate with main agent script
 3. Update configuration as needed
 
+## Slack DM Integration
+
+The agent can send daily digests via Slack DM. To enable:
+
+1. Set `slack.digest_recipient_email` in `config.yaml` to your Slack email
+2. Ensure `reporting.send_slack_dm` is set to `true` (default)
+3. Run the agent in an environment with MCP-S Slack tools access
+
+The agent will automatically send the daily digest as a DM when it generates the report.
+
+**Note**: Slack DM sending requires MCP-S Slack tool access. When running the agent in Cursor or an MCP-enabled environment, the daily digest will be automatically sent. For standalone execution, you may need to use the `send_slack_dm.py` helper script with MCP-S tools.
+
 ## Important Notes
 
 - **Read-Only Access**: Agent only reads from source repositories (wix-private)
 - **Write Access**: Agent can write to context repository (hen-gold/anon-cart)
 - **Privacy**: All source access is read-only, no modifications to original sources
 - **Logging**: All operations are logged for debugging and audit
+- **Slack DM**: Requires MCP-S Slack tools for sending messages
 
 ## Future Enhancements
 
