@@ -365,7 +365,7 @@ class DailyDigest:
     
     def _format_slack_message(self, digest_content, digest_file):
         """
-        Format digest content for Slack message.
+        Format digest content for Slack message matching the specified format.
         
         Args:
             digest_content: Full digest markdown content
@@ -374,15 +374,9 @@ class DailyDigest:
         Returns:
             str: Formatted Slack message
         """
-        # Extract summary section
         lines = digest_content.split('\n')
-        summary_start = None
-        for i, line in enumerate(lines):
-            if line.strip() == '## Summary':
-                summary_start = i
-                break
         
-        # Build message with key sections
+        # Build message header
         message = f"📊 *Daily Digest - {datetime.now().strftime('%Y-%m-%d')}*\n\n"
         
         # Extract Jira Updates section
@@ -397,11 +391,35 @@ class DailyDigest:
         
         if jira_start and jira_end:
             message += "*Jira Updates:*\n"
-            for line in lines[jira_start+1:jira_end]:
-                if line.strip() and line.strip().startswith('-'):
-                    slack_line = line.replace('- ', '• ').replace('**', '*')
-                    message += f"{slack_line}\n"
-            message += "\n"
+            current_item = None
+            for i, line in enumerate(lines[jira_start+1:jira_end]):
+                stripped = line.strip()
+                if not stripped:
+                    if current_item:
+                        message += "\n"  # Add spacing after item
+                        current_item = None
+                    continue
+                
+                # Main Jira item (starts with - **DOM2-XXX**)
+                if stripped.startswith('- **') and 'DOM2-' in stripped:
+                    if current_item:
+                        message += "\n"  # Add spacing between items
+                    # Format: • *DOM2-6652*: Created - [BED] ... (Assignee: ...)
+                    # Remove "**" and convert to Slack bold
+                    line_clean = line.replace('- **', '• *').replace('**:', '*:')
+                    # Ensure code blocks are preserved (statuses, priorities)
+                    message += f"{line_clean}\n"
+                    current_item = True
+                # Sub-details (indented with -)
+                elif stripped.startswith('- ') and current_item and not stripped.startswith('- **'):
+                    # Convert to open circle bullet (indented) - use ◦ for sub-items
+                    # Remove the leading "- " and add proper indentation
+                    sub_text = stripped[2:]  # Remove "- "
+                    message += f"  ◦ {sub_text}\n"
+                elif stripped.startswith('##'):
+                    break
+        
+        message += "\n"
         
         # Extract Decisions section (under Slack Communications)
         decisions_start = None
@@ -421,10 +439,22 @@ class DailyDigest:
         if decisions_start and decisions_end:
             message += "*Decisions:*\n"
             for line in lines[decisions_start+1:decisions_end]:
-                if line.strip() and line.strip().startswith('-'):
-                    slack_line = line.replace('- ', '• ').replace('**', '*')
-                    message += f"{slack_line}\n"
-            message += "\n"
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                
+                # Format decision line - remove "**Decision**: " prefix
+                if stripped.startswith('- **Decision**:'):
+                    decision_text = stripped.replace('- **Decision**:', '').strip()
+                    # Format: • Use `BrowserRouter` for ... (by FED team)
+                    # Ensure code blocks are preserved for technical terms
+                    message += f"• {decision_text}\n"
+                # Skip sub-items (indented lines starting with -)
+                elif stripped.startswith('- ') and not stripped.startswith('- **'):
+                    # This is a sub-item under a decision, skip for main decisions list
+                    continue
+        
+        message += "\n"
         
         # Extract Action Items section
         action_start = None
@@ -441,22 +471,32 @@ class DailyDigest:
         if action_start and action_end:
             message += "*Open Action Items:*\n"
             for line in lines[action_start+1:action_end]:
-                if line.strip() and line.strip().startswith('-'):
-                    slack_line = line.replace('- ', '• ').replace('**', '*')
-                    message += f"{slack_line}\n"
+                stripped = line.strip()
+                if not stripped or not stripped.startswith('-'):
+                    continue
+                
+                # Format: • *Action item* (Owner: ...) [#anon-cart]
+                action_line = line.replace('- **', '• *').replace('**', '*')
+                message += f"{action_line}\n"
             message += "\n"
         
-        # Include summary section
+        # Summary section
+        summary_start = None
+        for i, line in enumerate(lines):
+            if line.strip() == '## Summary':
+                summary_start = i
+                break
+        
         if summary_start:
             message += "*Summary:*\n"
-            summary_lines = lines[summary_start+1:]
-            for line in summary_lines:
-                if line.strip() and not line.startswith('#') and line.strip().startswith('-'):
-                    # Convert markdown to Slack format
-                    slack_line = line.replace('- ', '• ')
-                    message += f"{slack_line}\n"
+            for line in lines[summary_start+1:]:
+                stripped = line.strip()
+                if not stripped or not stripped.startswith('-'):
+                    continue
+                summary_line = line.replace('- ', '• ')
+                message += f"{summary_line}\n"
         
-        # Add link to full digest (if hosted or accessible)
+        # Add link to full digest
         message += f"\n📄 Full digest: `{digest_file}`\n"
         message += "\n_Generated by Context Synchronization Agent_"
         
