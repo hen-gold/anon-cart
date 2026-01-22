@@ -238,26 +238,31 @@ class DailyDigest:
             # Slack has a message length limit, so we'll send a summary + link
             message = self._format_slack_message(digest_content, digest_file)
             
-            # TODO: Use MCP-S Slack tools to send DM
-            # This requires the agent to be run in an environment with MCP-S access
-            # Example using MCP-S Slack tool:
-            # 
-            # from mcp_slack import send_message
-            # 
-            # if recipient_email:
-            #     send_message(
-            #         to=recipient_email,
-            #         subject=f"Daily Digest - {datetime.now().strftime('%Y-%m-%d')}",
-            #         body=message
-            #     )
+            # Prepare message for MCP-S Slack tool
+            # The actual sending will be done via MCP-S Slack tools when available
+            # In Cursor, this can be triggered automatically or manually
             
-            # For now, log the message that would be sent
             logger.info(f"Daily digest ready to send via Slack DM to {recipient_email or recipient_user_id}")
+            logger.info(f"Message prepared (length: {len(message)} chars)")
             logger.debug(f"Message preview:\n{message[:500]}...")
             
-            # Note: Actual sending requires MCP-S Slack integration
-            # The agent should be run in an environment that has access to MCP-S tools
-            # or the sending can be done via a separate script that uses MCP-S tools
+            # Store message details for MCP-S tool integration
+            # When running in Cursor with MCP-S tools, use:
+            # mcp_MCP-S-SLACK_slack__slack_send-message
+            # with to=recipient_email, subject=digest subject, body=message
+            
+            # Create a signal file that can be picked up by MCP-S integration
+            signal_file = self.reports_dir / f".digest-ready-{datetime.now().strftime('%Y-%m-%d')}.txt"
+            with open(signal_file, 'w') as f:
+                f.write(f"recipient={recipient_email or recipient_user_id}\n")
+                f.write(f"digest_file={digest_file}\n")
+                f.write(f"message_length={len(message)}\n")
+            
+            logger.info(f"Digest ready signal created: {signal_file}")
+            logger.info("To send via Slack DM, use MCP-S Slack send-message tool with:")
+            logger.info(f"  to: {recipient_email or recipient_user_id}")
+            logger.info(f"  subject: Daily Digest - {datetime.now().strftime('%Y-%m-%d')}")
+            logger.info(f"  body: (see {digest_file} or use formatted message)")
             
         except Exception as e:
             logger.error(f"Error sending Slack DM: {e}")
