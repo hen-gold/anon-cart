@@ -1,0 +1,49 @@
+{
+  "name": "Conductor – Jira webhook sync",
+  "nodes": [
+    {
+      "id": "webhook-jira",
+      "name": "Jira Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "conductor-jira",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "exec-sync-jira",
+      "name": "Sync Jira",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "parameters": {
+        "command": "cd /path/to/anon-cart && python3 conductor/agent/sync-agent.py --mode jira",
+        "executeOnce": true
+      },
+      "notesInFlow": true,
+      "notes": "Replace /path/to/anon-cart with your project root (e.g. /opt/anon-cart). Ensure Python and deps are installed and env vars are set (see docs/ENV.md)."
+    }
+  ],
+  "connections": {
+    "Jira Webhook": {
+      "main": [
+        [
+          {
+            "node": "Sync Jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
