@@ -1,0 +1,3 @@
+recipient=hengo@wix.com
+digest_file=conductor/reports/daily-digest-2026-01-25.md
+message_length=305

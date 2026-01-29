@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 class Changelog:
     """Manages the live changelog."""
-    
-    def __init__(self, config):
-        """Initialize with configuration."""
+
+    def __init__(self, config, project_root=None):
+        """Initialize with configuration and optional project root for path resolution."""
         self.config = config
-        self.changelog_file = Path(config.get('reporting', {}).get('changelog_file', 'conductor/CHANGELOG.md'))
+        rel = config.get("reporting", {}).get("changelog_file", "conductor/CHANGELOG.md")
+        self.changelog_file = (Path(project_root) / rel) if project_root else Path(rel)
         
     def add_entries(self, changes):
         """
@@ -99,26 +100,84 @@ class Changelog:
     
     def get_recent_changes(self, days=7):
         """
-        Get recent changes from changelog.
-        
+        Get recent changes from changelog by parsing ### timestamp - Type entries.
+
         Args:
             days: Number of days to look back
-            
+
         Returns:
-            list: Recent change entries
+            list: List of dicts with keys: timestamp, type, repository, issue, commit, change, context_updated, impact, raw_text
         """
         if not self.changelog_file.exists():
             return []
-        
+
         try:
-            with open(self.changelog_file, 'r') as f:
+            with open(self.changelog_file, "r") as f:
                 content = f.read()
-            
-            # Parse and return recent entries
-            # TODO: Implement parsing logic
-            
-            return []
-            
+
+            from datetime import datetime, timedelta
+            cutoff = (datetime.now() - timedelta(days=days)).date()
+            entries = []
+            current = None
+            lines_buf = []
+
+            for line in content.split("\n"):
+                if line.strip().startswith("### ") and " - " in line:
+                    if current is not None:
+                        entries.append(current)
+                    # Parse "### 2026-01-20 12:00 - Jira Update"
+                    rest = line.strip()[4:].strip()
+                    if " - " in rest:
+                        ts_part, type_part = rest.split(" - ", 1)
+                        ts_part = ts_part.strip()
+                        type_part = type_part.strip()
+                        try:
+                            dt = datetime.strptime(ts_part[:10], "%Y-%m-%d")
+                            if dt.date() >= cutoff:
+                                current = {
+                                    "timestamp": ts_part,
+                                    "type": type_part,
+                                    "repository": None,
+                                    "issue": None,
+                                    "commit": None,
+                                    "change": None,
+                                    "context_updated": None,
+                                    "impact": None,
+                                    "raw_text": line + "\n",
+                                }
+                                lines_buf = [line]
+                            else:
+                                current = None
+                        except ValueError:
+                            current = None
+                    else:
+                        current = None
+                elif current is not None and (line.startswith("- **") or line.strip() == ""):
+                    current["raw_text"] = current.get("raw_text", "") + line + "\n"
+                    if "**Repository**:" in line:
+                        current["repository"] = line.split(":", 1)[-1].strip()
+                    elif "**Issue**:" in line:
+                        current["issue"] = line.split(":", 1)[-1].strip()
+                    elif "**Commit**:" in line:
+                        current["commit"] = line.split(":", 1)[-1].strip()
+                    elif "**Change**:" in line:
+                        current["change"] = line.split(":", 1)[-1].strip()
+                    elif "**Context Updated**:" in line:
+                        current["context_updated"] = line.split(":", 1)[-1].strip()
+                    elif "**Impact**:" in line:
+                        current["impact"] = line.split(":", 1)[-1].strip()
+                else:
+                    if current is not None and line.strip() and not line.startswith("## ") and not line.startswith("# "):
+                        current["raw_text"] = current.get("raw_text", "") + line + "\n"
+                    elif line.strip().startswith("## ") or line.strip().startswith("# "):
+                        if current is not None:
+                            entries.append(current)
+                        current = None
+
+            if current is not None:
+                entries.append(current)
+            return entries
+
         except Exception as e:
             logger.error(f"Error reading changelog: {e}")
             return []

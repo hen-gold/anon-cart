@@ -7,6 +7,13 @@ schedule>=1.2.0
 # Webhook handlers (optional)
 flask>=2.3.0
 
+# API clients (direct API integration)
+jira>=3.5.0
+slack-sdk>=3.26.0
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+PyGithub>=2.1.0
+
 # Logging
 # Uses standard library logging
 

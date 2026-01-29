@@ -26,15 +26,13 @@ The context synchronization agent ensures that all context-driven development ar
 
 ### Prerequisites
 - Python 3.8+
-- Required packages (install via `pip install -r requirements.txt`):
-  - PyYAML
-  - schedule (for scheduled triggers)
-  - flask (for webhook handlers, optional)
+- Required packages: `pip install -r requirements.txt` (PyYAML, schedule, flask; jira, slack-sdk, google-api-python-client, google-auth, PyGithub for API integrations)
 
 ### Setup
-1. Ensure configuration is set in `config.yaml`
-2. Install dependencies: `pip install -r requirements.txt`
-3. Make script executable: `chmod +x sync-agent.py`
+1. Set configuration in `config.yaml`.
+2. Set environment variables for API access (see [docs/ENV.md](docs/ENV.md)): `JIRA_EMAIL`, `JIRA_API_TOKEN`, `SLACK_BOT_TOKEN`, and optionally `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_SERVICE_ACCOUNT_KEY`, `GITHUB_TOKEN`. Do not store secrets in the repo.
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run from project root (or set `CONDUCTOR_PROJECT_ROOT`) so context file paths resolve correctly.
 
 ## Usage
 
@@ -59,7 +57,7 @@ python sync-agent.py --mode digest
 python sync-agent.py --mode digest --force-digest
 ```
 
-### Scheduled Execution
+### Scheduled Execution (local)
 
 Run agent with scheduled triggers:
 
@@ -67,31 +65,15 @@ Run agent with scheduled triggers:
 python triggers/scheduled.py
 ```
 
-This will:
-- Run daily sync at configured time (default: 6 PM)
-- Periodically check for code commits, Jira updates, and document changes
-- Generate daily digest automatically
+Or use the wrapper script from project root: `./conductor/agent/run-daily-sync.sh`
 
-### Webhook Handlers
+### GitHub Actions (scheduled and real-time)
 
-#### GitHub Webhooks
+The repo includes workflows that run the agent on GitHub’s runners: scheduled sync, daily digest, on-demand dispatch (e.g. from Jira via API), and optional Jira poll. See [docs/github-actions.md](docs/github-actions.md) for workflow list, required secrets, and how to trigger `repository_dispatch`.
 
-Set up GitHub webhook pointing to:
-```
-POST /webhook/github
-```
+### Webhook Handlers (optional)
 
-Events to subscribe:
-- `push` - Code commits
-- `pull_request` - PR merges
-
-#### Jira Webhooks
-
-Configure Jira webhook for:
-- Issue updated events
-- Issue created events
-
-Filter for project: DOM2
+Run Flask webhook handlers locally (see `triggers/github_webhook.py`, `triggers/jira_webhook.py`) to invoke the agent from GitHub or Jira webhooks.
 
 ## Configuration
 
@@ -102,7 +84,7 @@ Edit `config.yaml` to configure:
 - Google Doc/Sheet IDs
 - Sync intervals
 - Reporting settings
-- **Slack DM recipient**: Set `slack.digest_recipient_email` to receive daily digest via DM
+- **Slack DM**: Set `slack.digest_recipient_user_id` (Slack user ID) and `reporting.send_slack_dm: true`; the agent sends the daily digest via Slack Web API when `SLACK_BOT_TOKEN` is set. See [docs/ENV.md](docs/ENV.md).
 
 ## Architecture
 
@@ -131,18 +113,18 @@ Edit `config.yaml` to configure:
 
 ### Daily Digests
 - **Location**: `conductor/reports/daily-digest-YYYY-MM-DD.md`
-- **Frequency**: Daily at configured time
-- **Content**: Summary of all changes and communications
-- **Slack DM**: Automatically sent to configured recipient (set `slack.digest_recipient_email` in config)
+- **Frequency**: Daily at configured time (or when run with `--mode digest`)
+- **Content**: Summary of all changes and communications (from changelog and Slack state)
+- **Slack DM**: Sent via Slack Web API to `slack.digest_recipient_user_id` when `SLACK_BOT_TOKEN` is set and `reporting.send_slack_dm` is true
 
-## Integration with MCP-S Tools
+## API Integration
 
-The agent uses MCP-S tools for accessing external services:
+The agent uses direct REST/API clients (no MCP-S required when run on a server):
 
-- **Jira**: MCP-S Jira tools for issue queries
-- **Google Workspace**: MCP-S Google Workspace tools for Docs/Sheets
-- **Slack**: MCP-S Slack tools for channel reading
-- **GitHub**: GitHub API or MCP-S tools for repository access
+- **Jira**: Jira REST API (`jira` library) with `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL`
+- **Slack**: Slack Web API (`slack-sdk`) with `SLACK_BOT_TOKEN` for channel history and sending digest DM
+- **Google**: Google Drive/Docs/Sheets API with `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_SERVICE_ACCOUNT_KEY`
+- **GitHub**: GitHub API (`PyGithub`) with `GITHUB_TOKEN` for code sync
 
 ## Context Files Updated
 
@@ -162,8 +144,8 @@ The agent automatically updates:
 ## Troubleshooting
 
 ### Agent not detecting changes
-- Check configuration in `config.yaml`
-- Verify MCP-S tool access and permissions
+- Check configuration in `config.yaml` and environment variables (see [docs/ENV.md](docs/ENV.md))
+- Ensure the agent runs from project root (or set `CONDUCTOR_PROJECT_ROOT`) so paths to `conductor/tracks.md`, `conductor/CHANGELOG.md`, etc. resolve correctly
 - Check logs in `conductor/agent/logs/sync-agent.log`
 
 ### Daily digest not generating
@@ -193,15 +175,13 @@ The agent automatically updates:
 
 ## Slack DM Integration
 
-The agent can send daily digests via Slack DM. To enable:
+The agent sends daily digests via Slack Web API (no MCP-S required). To enable:
 
-1. Set `slack.digest_recipient_email` in `config.yaml` to your Slack email
-2. Ensure `reporting.send_slack_dm` is set to `true` (default)
-3. Run the agent in an environment with MCP-S Slack tools access
+1. Set `slack.digest_recipient_user_id` in `config.yaml` to your Slack user ID (e.g. `U06LKHPJG3W`)
+2. Set `reporting.send_slack_dm` to `true` in config
+3. Set the `SLACK_BOT_TOKEN` environment variable (Bot User OAuth Token, `xoxb-...`)
 
-The agent will automatically send the daily digest as a DM when it generates the report.
-
-**Note**: Slack DM sending requires MCP-S Slack tool access. When running the agent in Cursor or an MCP-enabled environment, the daily digest will be automatically sent. For standalone execution, you may need to use the `send_slack_dm.py` helper script with MCP-S tools.
+When the agent runs with `--mode digest` or `--mode scheduled`, it will generate the digest file and send it as a DM to that user.
 
 ## Important Notes
 
@@ -209,7 +189,7 @@ The agent will automatically send the daily digest as a DM when it generates the
 - **Write Access**: Agent can write to context repository (hen-gold/anon-cart)
 - **Privacy**: All source access is read-only, no modifications to original sources
 - **Logging**: All operations are logged for debugging and audit
-- **Slack DM**: Requires MCP-S Slack tools for sending messages
+- **Slack DM**: Requires `SLACK_BOT_TOKEN` and `slack.digest_recipient_user_id` (see [docs/ENV.md](docs/ENV.md))
 
 ## Future Enhancements
 

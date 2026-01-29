@@ -2,10 +2,11 @@
 """
 Slack DM Sender Helper
 
-Helper script to send daily digest via Slack DM using MCP-S tools.
-This can be called from the agent or run independently.
+Sends daily digest file via Slack DM using Slack Web API (SLACK_BOT_TOKEN).
+Can be run standalone: python send_slack_dm.py <digest_file_path> [config_path]
 """
 
+import os
 import sys
 import logging
 from pathlib import Path
@@ -16,56 +17,68 @@ logger = logging.getLogger(__name__)
 
 def send_digest_via_slack(digest_file_path, config_path=None):
     """
-    Send daily digest file via Slack DM.
-    
-    This function is designed to be called with MCP-S Slack tools available.
-    In a Cursor/MCP environment, this can use the MCP-S Slack send-message tool.
-    
+    Send daily digest file via Slack DM using Slack Web API.
+
     Args:
         digest_file_path: Path to the daily digest markdown file
         config_path: Path to config.yaml (optional)
+
+    Returns:
+        bool: True if sent (or formatted and token missing), False on error
     """
     if config_path is None:
-        config_path = Path(__file__).parent / 'config.yaml'
-    
-    with open(config_path, 'r') as f:
+        config_path = Path(__file__).parent / "config.yaml"
+
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    
-    slack_config = config.get('slack', {})
-    recipient_email = slack_config.get('digest_recipient_email', '')
-    recipient_user_id = slack_config.get('digest_recipient_user_id', '')
-    
-    if not recipient_email and not recipient_user_id:
-        logger.error("No Slack recipient configured")
+
+    slack_config = config.get("slack", {})
+    recipient_user_id = slack_config.get("digest_recipient_user_id", "")
+
+    if not recipient_user_id:
+        logger.error("No slack.digest_recipient_user_id configured")
         return False
-    
-    # Read digest file
+
     digest_file = Path(digest_file_path)
     if not digest_file.exists():
-        logger.error(f"Digest file not found: {digest_file}")
+        logger.error("Digest file not found: %s", digest_file)
         return False
-    
-    with open(digest_file, 'r') as f:
+
+    with open(digest_file, "r") as f:
         digest_content = f.read()
-    
-    # Format for Slack
+
     from reporting.daily_digest import DailyDigest
     digest_module = DailyDigest(config)
     message = digest_module._format_slack_message(digest_content, str(digest_file))
-    
-    # Note: Actual sending requires MCP-S Slack tool access
-    # In Cursor, this would be done via:
-    # mcp_MCP-S-SLACK_slack__slack_send-message
-    # 
-    # Example usage in Cursor/MCP environment:
-    # - Use the MCP-S Slack send-message tool
-    # - Pass recipient_email or recipient_user_id
-    # - Pass message as body
-    
-    logger.info(f"Digest ready to send to {recipient_email or recipient_user_id}")
-    logger.info(f"Message:\n{message}")
-    
-    return True
+    if len(message) > 39000:
+        message = message[:38900] + "\n\n... (truncated)"
+
+    token = os.environ.get("SLACK_BOT_TOKEN")
+    if not token:
+        logger.warning("SLACK_BOT_TOKEN not set; message not sent")
+        logger.info("Message prepared for %s (length %d)", recipient_user_id, len(message))
+        return True
+
+    try:
+        from slack_sdk import WebClient
+        client = WebClient(token=token)
+        open_r = client.conversations_open(users=[recipient_user_id])
+        if not open_r.get("ok"):
+            logger.error("Slack conversations.open failed: %s", open_r)
+            return False
+        channel_id = open_r.get("channel", {}).get("id")
+        if not channel_id:
+            logger.error("No channel id from conversations.open")
+            return False
+        post_r = client.chat_postMessage(channel=channel_id, text=message)
+        if not post_r.get("ok"):
+            logger.error("Slack chat.postMessage failed: %s", post_r)
+            return False
+        logger.info("Digest sent via Slack DM to %s", recipient_user_id)
+        return True
+    except Exception as e:
+        logger.error("Error sending Slack DM: %s", e)
+        return False
 
 
 if __name__ == '__main__':

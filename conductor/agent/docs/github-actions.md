@@ -13,7 +13,7 @@ This document describes the GitHub Actions workflows that run the Conductor sync
 
 ## Repository dispatch (real-time)
 
-The **Conductor – Dispatch** workflow is triggered by `repository_dispatch`. External systems (e.g. n8n, Jira Automation, or a small service) can trigger it by calling the GitHub API.
+The **Conductor – Dispatch** workflow is triggered by `repository_dispatch`. External systems (e.g. Jira Automation or a small service) can trigger it by calling the GitHub API.
 
 **Endpoint:** `POST /repos/hen-gold/anon-cart/dispatches`
 
@@ -48,7 +48,7 @@ gh api repos/hen-gold/anon-cart/dispatches -f event_type=jira-update
 gh api repos/hen-gold/anon-cart/dispatches -f event_type=full-sync
 ```
 
-**Jira → GitHub:** Configure Jira (or Jira Automation) to send the webhook to **n8n** (or another endpoint you control). That service then calls the GitHub API as above with `event_type: jira-update` (or `full-sync`). The workflow runs and commits any conductor changes.
+**Jira → GitHub:** Configure Jira (or Jira Automation) to send the webhook to an endpoint you control. That service then calls the GitHub API as above with `event_type: jira-update` (or `full-sync`). The workflow runs and commits any conductor changes.
 
 ## Required secrets
 
@@ -77,4 +77,3 @@ All Conductor workflows use `concurrency: group: conductor-sync` with `cancel-in
 
 - [ENV.md](ENV.md) – Environment variables used by the agent
 - [README.md](../README.md) – Agent overview and usage
-- [phase7-n8n-workflows.md](phase7-n8n-workflows.md) – n8n-based automation (alternative to GitHub Actions)

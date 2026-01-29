@@ -8,6 +8,7 @@ relevant context documents, and generates daily digests and a live changelog.
 
 import argparse
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -31,27 +32,41 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _project_root(config_path: Path) -> Path:
+    """Resolve project root: env CONDUCTOR_PROJECT_ROOT or two levels up from agent dir."""
+    root = os.environ.get("CONDUCTOR_PROJECT_ROOT")
+    if root:
+        return Path(root).resolve()
+    # config_path is conductor/agent/config.yaml -> project root is parent of conductor
+    agent_dir = config_path.parent
+    return agent_dir.parent.parent.resolve()
+
+
 class SyncAgent:
     """Main context synchronization agent."""
-    
+
     def __init__(self, config_path=None):
         """Initialize agent with configuration."""
         if config_path is None:
-            config_path = Path(__file__).parent / 'config.yaml'
-        
-        with open(config_path, 'r') as f:
+            config_path = Path(__file__).parent / "config.yaml"
+        else:
+            config_path = Path(config_path)
+
+        with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
-        
-        # Initialize sync modules
-        self.code_sync = CodeSync(self.config)
-        self.jira_sync = JiraSync(self.config)
-        self.docs_sync = DocsSync(self.config)
-        self.slack_sync = SlackSync(self.config)
-        
+
+        self.project_root = _project_root(config_path)
+
+        # Initialize sync modules with project_root for path resolution
+        self.code_sync = CodeSync(self.config, self.project_root)
+        self.jira_sync = JiraSync(self.config, self.project_root)
+        self.docs_sync = DocsSync(self.config, self.project_root)
+        self.slack_sync = SlackSync(self.config, self.project_root)
+
         # Initialize reporting modules
-        self.changelog = Changelog(self.config)
-        self.daily_digest = DailyDigest(self.config)
-        
+        self.changelog = Changelog(self.config, self.project_root)
+        self.daily_digest = DailyDigest(self.config, self.project_root)
+
         # Track changes for reporting
         self.changes = []
     

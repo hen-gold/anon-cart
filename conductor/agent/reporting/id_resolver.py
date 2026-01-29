@@ -2,101 +2,105 @@
 ID Resolver Module
 
 Resolves Slack user IDs and channel IDs to human-readable names.
+Uses Slack Web API when not in known mappings.
 """
 
 import logging
+import os
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
+def _slack_client():
+    """Return Slack WebClient if token set, else None."""
+    token = os.environ.get("SLACK_BOT_TOKEN")
+    if not token:
+        return None
+    try:
+        from slack_sdk import WebClient
+        return WebClient(token=token)
+    except ImportError:
+        return None
+
+
 class IDResolver:
     """Resolves IDs to human-readable names."""
-    
+
     def __init__(self, config):
         """Initialize with configuration."""
         self.config = config
-        self.slack_config = config.get('slack', {})
+        self.slack_config = config.get("slack", {})
         self._user_cache: Dict[str, str] = {}
         self._channel_cache: Dict[str, str] = {}
-        
-        # Known mappings from config and discovered users
+
         self._known_users = {
-            'U06LKHPJG3W': 'hengo',  # From config
-            'U059S071SSZ': 'shayg',  # Shay Tal-Gerby
-            'U05J8235L06': 'shahari',  # Shahar Itzko
-            'U07CMQF9PEF': 'talso',  # Tal Soffer Nachshon
-            'U0UEZE475': 'gavinr',  # Gavin Rifkind
-            'U09K614FQP9': 'talso',  # Tal Soffer Nachshon (same as U07CMQF9PEF)
-            'U02QNEXLC3A': 'bard',  # Bar Darmon
+            "U06LKHPJG3W": "hengo",
+            "U059S071SSZ": "shayg",
+            "U05J8235L06": "shahari",
+            "U07CMQF9PEF": "talso",
+            "U0UEZE475": "gavinr",
+            "U09K614FQP9": "talso",
+            "U02QNEXLC3A": "bard",
         }
-        
+
         self._known_channels = {
-            'C0A6AMMMTFY': '#anon-cart',  # From config
+            "C0A6AMMMTFY": "#anon-cart",
         }
-    
+
     def resolve_user_id(self, user_id: str) -> str:
         """
-        Resolve Slack user ID to username.
-        
-        Args:
-            user_id: Slack user ID (e.g., U06LKHPJG3W)
-            
-        Returns:
-            str: Username or user ID if not found
+        Resolve Slack user ID to username (display name or real name).
+        Uses known mappings, then Slack Web API users.info.
         """
-        if not user_id or not user_id.startswith('U'):
+        if not user_id or not user_id.startswith("U"):
             return user_id
-        
-        # Check cache
+
         if user_id in self._user_cache:
             return self._user_cache[user_id]
-        
-        # Check known mappings
         if user_id in self._known_users:
-            username = self._known_users[user_id]
-            self._user_cache[user_id] = username
-            return username
-        
-        # TODO: Use MCP-S Slack tools to resolve
-        # For now, return the ID
-        # In actual implementation, would use:
-        # mcp_MCP-S-SLACK_slack__slack_get_user_profile(user_id=user_id)
-        # to get the username
-        
-        logger.debug(f"User ID {user_id} not resolved, using ID")
+            name = self._known_users[user_id]
+            self._user_cache[user_id] = name
+            return name
+
+        client = _slack_client()
+        if client:
+            try:
+                r = client.users_info(user=user_id)
+                if r.get("ok") and r.get("user"):
+                    profile = r["user"].get("profile", {}) or {}
+                    name = profile.get("display_name") or profile.get("real_name") or r["user"].get("name") or user_id
+                    self._user_cache[user_id] = name
+                    return name
+            except Exception as e:
+                logger.debug(f"users.info failed for {user_id}: {e}")
         return user_id
-    
+
     def resolve_channel_id(self, channel_id: str) -> str:
         """
         Resolve Slack channel ID to channel name.
-        
-        Args:
-            channel_id: Slack channel ID (e.g., C0A6AMMMTFY)
-            
-        Returns:
-            str: Channel name with # prefix or channel ID if not found
+        Uses known mappings, then Slack Web API conversations.info.
         """
-        if not channel_id or not channel_id.startswith('C'):
+        if not channel_id or not channel_id.startswith("C"):
             return channel_id
-        
-        # Check cache
+
         if channel_id in self._channel_cache:
             return self._channel_cache[channel_id]
-        
-        # Check known mappings
         if channel_id in self._known_channels:
-            channel_name = self._known_channels[channel_id]
-            self._channel_cache[channel_id] = channel_name
-            return channel_name
-        
-        # TODO: Use MCP-S Slack tools to resolve
-        # For now, return the ID
-        # In actual implementation, would use:
-        # mcp_MCP-S-SLACK_slack__slack_find-channel-id or list channels
-        # to get the channel name
-        
-        logger.debug(f"Channel ID {channel_id} not resolved, using ID")
+            name = self._known_channels[channel_id]
+            self._channel_cache[channel_id] = name
+            return name
+
+        client = _slack_client()
+        if client:
+            try:
+                r = client.conversations_info(channel=channel_id)
+                if r.get("ok") and r.get("channel"):
+                    name = r["channel"].get("name", channel_id)
+                    self._channel_cache[channel_id] = "#" + name if not name.startswith("#") else name
+                    return self._channel_cache[channel_id]
+            except Exception as e:
+                logger.debug(f"conversations.info failed for {channel_id}: {e}")
         return channel_id
     
     def resolve_user_ids_in_text(self, text: str) -> str:

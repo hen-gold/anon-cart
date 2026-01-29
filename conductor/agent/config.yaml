@@ -82,3 +82,13 @@ logging:
   log_file: conductor/agent/logs/sync-agent.log
   max_log_size_mb: 10
   backup_count: 5
+
+# Authentication: set via environment variables (do not store secrets in this file).
+# JIRA_EMAIL          - Jira account email
+# JIRA_API_TOKEN      - Jira API token (Atlassian)
+# JIRA_BASE_URL       - Optional; defaults to jira.base_url above (e.g. https://wix.atlassian.net)
+# SLACK_BOT_TOKEN     - Slack Bot User OAuth Token (xoxb-...)
+# GOOGLE_APPLICATION_CREDENTIALS - Path to service account JSON file
+# GOOGLE_SERVICE_ACCOUNT_KEY    - Or base64-encoded JSON service account key
+# GITHUB_TOKEN        - Optional; for code sync (GitHub API)
+# CONDUCTOR_PROJECT_ROOT - Optional; repo root for resolving context file paths (default: inferred from config location)

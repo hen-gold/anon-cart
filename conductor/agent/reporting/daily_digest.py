@@ -14,14 +14,16 @@ logger = logging.getLogger(__name__)
 
 class DailyDigest:
     """Generates daily digest reports."""
-    
-    def __init__(self, config):
-        """Initialize with configuration."""
+
+    def __init__(self, config, project_root=None):
+        """Initialize with configuration and optional project root for path resolution."""
         self.config = config
-        self.reports_dir = Path(config.get('reporting', {}).get('reports_dir', 'conductor/reports'))
-        self.digest_time = config.get('reporting', {}).get('daily_digest_time', '18:00')
-        self.send_slack_dm = config.get('reporting', {}).get('send_slack_dm', False)
-        self.slack_config = config.get('slack', {})
+        self.project_root = Path(project_root) if project_root else None
+        rel = config.get("reporting", {}).get("reports_dir", "conductor/reports")
+        self.reports_dir = (Path(project_root) / rel) if project_root else Path(rel)
+        self.digest_time = config.get("reporting", {}).get("daily_digest_time", "18:00")
+        self.send_slack_dm = config.get("reporting", {}).get("send_slack_dm", False)
+        self.slack_config = config.get("slack", {})
         self.last_digest_date = None
         self.id_resolver = IDResolver(config)
         
@@ -91,52 +93,88 @@ class DailyDigest:
             logger.error(f"Error generating daily digest: {e}")
             return None
     
+    def _get_recent_changelog_entries(self, days=1):
+        """Get recent changelog entries (last N days) for digest data."""
+        try:
+            from reporting.changelog import Changelog
+            changelog = Changelog(self.config, self.project_root)
+            return changelog.get_recent_changes(days=days)
+        except Exception as e:
+            logger.debug("Could not load changelog for digest: %s", e)
+            return []
+
     def _collect_code_changes(self):
-        """Collect code changes from changelog or sync modules."""
-        # TODO: Collect code changes from:
-        # - CHANGELOG.md entries from last 24 hours
-        # - Or from sync modules directly
-        
-        return {
-            'bed': [],
-            'fed': [],
-            'total': 0
-        }
-    
+        """Collect code changes from changelog (last 24 hours)."""
+        entries = self._get_recent_changelog_entries(1)
+        bed, fed = [], []
+        for e in entries:
+            if "Code" in (e.get("type") or "") or "Commit" in (e.get("type") or ""):
+                repo = e.get("repository") or ""
+                item = {"message": e.get("change", "")[:200], "sha": e.get("commit", "")[:7]}
+                if "bed" in repo.lower() or "premium" in repo.lower():
+                    bed.append(item)
+                else:
+                    fed.append(item)
+        return {"bed": bed, "fed": fed, "total": len(bed) + len(fed)}
+
     def _collect_jira_changes(self):
-        """Collect Jira changes from last 24 hours."""
-        # TODO: Collect Jira changes from:
-        # - CHANGELOG.md entries
-        # - Or from Jira sync module
-        # - Use MCP-S Jira tools to get changelog for issues
-        
+        """Collect Jira changes from changelog (last 24 hours)."""
+        entries = self._get_recent_changelog_entries(1)
+        status_changes, new_issues, priority_changes, assignee_changes, created = [], [], [], [], []
+        for e in entries:
+            if (e.get("type") or "") != "Jira Update":
+                continue
+            issue = e.get("issue") or ""
+            change = e.get("change")
+            if isinstance(change, dict):
+                if "status" in change:
+                    status_changes.append({"issue": issue, "old": change["status"].get("old"), "new": change["status"].get("new")})
+                if "priority" in change:
+                    priority_changes.append({"issue": issue, "old": change["priority"].get("old"), "new": change["priority"].get("new")})
+                if "assignee" in change:
+                    assignee_changes.append({"issue": issue, "old": change["assignee"].get("old"), "new": change["assignee"].get("new")})
+            if change == {"new": True} or (isinstance(change, dict) and change.get("new")):
+                created.append({"issue": issue})
+        total = len(status_changes) + len(new_issues) + len(priority_changes) + len(assignee_changes) + len(created)
         return {
-            'status_changes': [],  # Format: {'issue': 'DOM2-XXX', 'old': 'In Progress', 'new': 'Done', 'assignee': 'Name'}
-            'new_issues': [],      # Format: {'issue': 'DOM2-XXX', 'summary': '...', 'assignee': 'Name', 'priority': 'High'}
-            'priority_changes': [], # Format: {'issue': 'DOM2-XXX', 'old': 'High', 'new': 'Blocker'}
-            'assignee_changes': [], # Format: {'issue': 'DOM2-XXX', 'old': 'Name1', 'new': 'Name2'}
-            'created': [],         # Format: {'issue': 'DOM2-XXX', 'summary': '...', 'assignee': 'Name'}
-            'total': 0
+            "status_changes": status_changes,
+            "new_issues": new_issues,
+            "priority_changes": priority_changes,
+            "assignee_changes": assignee_changes,
+            "created": created,
+            "total": total,
         }
-    
+
     def _collect_slack_summary(self):
-        """Collect Slack communication summary."""
-        # TODO: Collect from Slack sync module's stored summary
-        
+        """Collect Slack summary from .state/slack_summary.json."""
+        agent_dir = Path(__file__).parent.parent
+        try:
+            import state_manager
+            data = state_manager.load_state("slack_summary", agent_dir)
+        except ImportError:
+            data = {}
+        decisions = [{"decision": t, "context": "", "author": ""} for t in data.get("decisions", [])[:20]]
+        blockers = data.get("blockers", [])[:20]
+        status_updates = data.get("status_updates", [])[:20]
+        action_items = [{"item": t, "owner": "", "context": ""} for t in data.get("action_items", [])[:20]]
         return {
-            'messages_count': 0,
-            'decisions': [],  # Format: {'decision': 'Actual decision text', 'context': '...', 'author': 'Name'}
-            'blockers': [],
-            'status_updates': [],
-            'dependencies': [],
-            'action_items': []  # Format: {'item': 'Action description', 'owner': 'Name/UserID', 'context': '...'}
+            "messages_count": data.get("messages_count", 0),
+            "decisions": decisions,
+            "blockers": blockers,
+            "status_updates": status_updates,
+            "dependencies": data.get("dependencies", []),
+            "action_items": action_items,
         }
-    
+
     def _collect_context_updates(self):
-        """Collect context file updates from last 24 hours."""
-        # TODO: Collect from CHANGELOG.md or track updates
-        
-        return []
+        """Collect context file updates from changelog (last 24 hours)."""
+        entries = self._get_recent_changelog_entries(1)
+        updates = []
+        for e in entries:
+            cu = e.get("context_updated")
+            if cu and cu not in updates:
+                updates.append(cu)
+        return updates
     
     def _format_digest(self, date, code_changes, jira_changes, slack_summary, context_updates):
         """
@@ -316,52 +354,39 @@ class DailyDigest:
     
     def _send_slack_dm(self, digest_content, digest_file):
         """
-        Send daily digest via Slack DM.
-        
-        Args:
-            digest_content: Full digest content (markdown)
-            digest_file: Path to digest file
+        Send daily digest via Slack DM using Slack Web API.
+        Uses conversations.open + chat.postMessage with SLACK_BOT_TOKEN.
         """
-        recipient_email = self.slack_config.get('digest_recipient_email', '')
-        recipient_user_id = self.slack_config.get('digest_recipient_user_id', '')
-        
-        if not recipient_email and not recipient_user_id:
-            logger.warning("No Slack recipient configured for daily digest DM")
+        import os
+        recipient_user_id = self.slack_config.get("digest_recipient_user_id", "")
+        if not recipient_user_id:
+            logger.warning("No digest_recipient_user_id configured for daily digest DM")
             return
-        
         try:
-            # Format message for Slack
-            # Slack has a message length limit, so we'll send a summary + link
             message = self._format_slack_message(digest_content, digest_file)
-            
-            # Prepare message for MCP-S Slack tool
-            # The actual sending will be done via MCP-S Slack tools when available
-            # In Cursor, this can be triggered automatically or manually
-            
-            logger.info(f"Daily digest ready to send via Slack DM to {recipient_email or recipient_user_id}")
-            logger.info(f"Message prepared (length: {len(message)} chars)")
-            logger.debug(f"Message preview:\n{message[:500]}...")
-            
-            # Store message details for MCP-S tool integration
-            # When running in Cursor with MCP-S tools, use:
-            # mcp_MCP-S-SLACK_slack__slack_send-message
-            # with to=recipient_email, subject=digest subject, body=message
-            
-            # Create a signal file that can be picked up by MCP-S integration
-            signal_file = self.reports_dir / f".digest-ready-{datetime.now().strftime('%Y-%m-%d')}.txt"
-            with open(signal_file, 'w') as f:
-                f.write(f"recipient={recipient_email or recipient_user_id}\n")
-                f.write(f"digest_file={digest_file}\n")
-                f.write(f"message_length={len(message)}\n")
-            
-            logger.info(f"Digest ready signal created: {signal_file}")
-            logger.info("To send via Slack DM, use MCP-S Slack send-message tool with:")
-            logger.info(f"  to: {recipient_email or recipient_user_id}")
-            logger.info(f"  subject: Daily Digest - {datetime.now().strftime('%Y-%m-%d')}")
-            logger.info(f"  body: (see {digest_file} or use formatted message)")
-            
+            if len(message) > 39000:
+                message = message[:38900] + "\n\n... (truncated; see full digest in repo)"
+            token = os.environ.get("SLACK_BOT_TOKEN")
+            if not token:
+                logger.warning("SLACK_BOT_TOKEN not set; skipping Slack DM")
+                return
+            from slack_sdk import WebClient
+            client = WebClient(token=token)
+            open_r = client.conversations_open(users=[recipient_user_id])
+            if not open_r.get("ok"):
+                logger.error("Slack conversations.open failed: %s", open_r)
+                return
+            channel_id = open_r.get("channel", {}).get("id")
+            if not channel_id:
+                logger.error("No channel id from conversations.open")
+                return
+            post_r = client.chat_postMessage(channel=channel_id, text=message)
+            if not post_r.get("ok"):
+                logger.error("Slack chat.postMessage failed: %s", post_r)
+                return
+            logger.info("Daily digest sent via Slack DM to %s", recipient_user_id)
         except Exception as e:
-            logger.error(f"Error sending Slack DM: {e}")
+            logger.error("Error sending Slack DM: %s", e)
     
     def _format_slack_message(self, digest_content, digest_file):
         """

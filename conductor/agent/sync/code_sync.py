@@ -2,178 +2,123 @@
 Code Synchronization Module
 
 Monitors code commits across repositories and updates relevant context documents.
+Uses GitHub API (PyGithub) with GITHUB_TOKEN when set.
 """
 
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
+def _get_github():
+    """Return PyGithub instance if GITHUB_TOKEN set, else None."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        logger.debug("GITHUB_TOKEN not set")
+        return None
+    try:
+        from github import Github
+        return Github(token)
+    except ImportError:
+        logger.warning("PyGithub not installed; run pip install PyGithub")
+        return None
+
+
 class CodeSync:
     """Synchronizes code changes from monitored repositories."""
-    
-    def __init__(self, config):
-        """Initialize with configuration."""
+
+    def __init__(self, config, project_root=None):
+        """Initialize with configuration and optional project root."""
         self.config = config
-        self.repos = config.get('repositories', {})
-        self.context_files = config.get('sync', {}).get('context_files', {})
-        
+        self.project_root = Path(project_root) if project_root else None
+        self.repos = config.get("repositories", {})
+        self.context_files = config.get("sync", {}).get("context_files", {})
+        self._agent_dir = Path(__file__).parent.parent
+
+    def _resolve_path(self, relative_path: str) -> Path:
+        if self.project_root:
+            return self.project_root / relative_path
+        return Path(relative_path)
+
     def sync(self):
         """
         Sync code commits from monitored repositories.
-        
+
         Returns:
             list: List of change entries for changelog
         """
         changes = []
-        
-        # Sync BED repository
-        if 'bed' in self.repos:
-            bed_changes = self._sync_repository('bed')
-            changes.extend(bed_changes)
-        
-        # Sync FED repository
-        if 'fed' in self.repos:
-            fed_changes = self._sync_repository('fed')
-            changes.extend(fed_changes)
-        
+        if "bed" in self.repos:
+            changes.extend(self._sync_repository("bed"))
+        if "fed" in self.repos:
+            changes.extend(self._sync_repository("fed"))
         return changes
-    
+
     def _sync_repository(self, repo_key):
-        """
-        Sync a specific repository.
-        
-        Args:
-            repo_key: Key in config.repositories (bed, fed, context)
-            
-        Returns:
-            list: Change entries
-        """
+        """Fetch recent commits via GitHub API; update state and summary; return change entries."""
         repo_config = self.repos.get(repo_key, {})
-        changes = []
-        
+        owner = repo_config.get("owner")
+        repo_name = repo_config.get("repo")
+        branch = repo_config.get("branch", "main")
+        if not owner or not repo_name:
+            return []
+
+        gh = _get_github()
+        if not gh:
+            return []
+
         try:
-            # Check for new commits
-            # Note: This is a placeholder - actual implementation would use
-            # GitHub API or MCP-S tools to check for commits
-            logger.info(f"Checking {repo_key} repository for changes...")
-            
-            # TODO: Implement actual commit checking
-            # - Use GitHub API or MCP-S tools
-            # - Compare with last known commit
-            # - Analyze changed files
-            # - Determine impact on context documents
-            
-            # Placeholder: Return empty list for now
-            # In actual implementation, this would:
-            # 1. Fetch recent commits
-            # 2. Analyze changes
-            # 3. Update context files
-            # 4. Return change entries
-            
-            return changes
-            
+            import state_manager
+            state = state_manager.load_state("code_last_commit", self._agent_dir)
+            last_sha = state.get(repo_key)
+        except ImportError:
+            state = {}
+            last_sha = None
+
+        try:
+            repo = gh.get_repo(f"{owner}/{repo_name}")
+            commits = list(repo.get_commits(sha=branch)[:30])
         except Exception as e:
-            logger.error(f"Error syncing {repo_key} repository: {e}")
-            return changes
-    
-    def _analyze_commit_impact(self, commit, repo_key):
-        """
-        Analyze a commit to determine which context files need updating.
-        
-        Args:
-            commit: Commit information
-            repo_key: Repository key
-            
-        Returns:
-            dict: Impact analysis with files to update
-        """
-        impact = {
-            'bed_summary': False,
-            'fed_summary': False,
-            'tech_stack': False,
-            'tracks': False
-        }
-        
-        # Analyze changed files
-        changed_files = commit.get('files', [])
-        
-        if repo_key == 'bed':
-            # Check if cart-related files changed
-            cart_files = [f for f in changed_files if 'cart' in f.lower()]
-            if cart_files:
-                impact['bed_summary'] = True
-                # Check for dependency changes
-                if any('pom.xml' in f or 'build.gradle' in f or 'package.json' in f for f in changed_files):
-                    impact['tech_stack'] = True
-        
-        elif repo_key == 'fed':
-            # Check if cart-related files changed
-            cart_files = [f for f in changed_files if 'cart' in f.lower()]
-            if cart_files:
-                impact['fed_summary'] = True
-                # Check for dependency changes
-                if any('package.json' in f or 'yarn.lock' in f for f in changed_files):
-                    impact['tech_stack'] = True
-        
-        return impact
-    
-    def _update_context_files(self, impact, commit, repo_key):
-        """
-        Update context files based on impact analysis.
-        
-        Args:
-            impact: Impact analysis dict
-            commit: Commit information
-            repo_key: Repository key
-        """
-        # Update BED summary if needed
-        if impact.get('bed_summary') and repo_key == 'bed':
-            self._update_bed_summary(commit)
-        
-        # Update FED summary if needed
-        if impact.get('fed_summary') and repo_key == 'fed':
-            self._update_fed_summary(commit)
-        
-        # Update tech stack if needed
-        if impact.get('tech_stack'):
-            self._update_tech_stack(commit, repo_key)
-    
-    def _update_bed_summary(self, commit):
-        """Update BED repository summary."""
-        summary_file = Path(self.context_files.get('bed_summary', ''))
-        if not summary_file.exists():
-            logger.warning(f"BED summary file not found: {summary_file}")
-            return
-        
-        # TODO: Implement actual update logic
-        # - Read current summary
-        # - Extract relevant info from commit
-        # - Update summary with new information
-        # - Write back to file
-        
-        logger.info(f"Updating BED summary based on commit {commit.get('sha', 'unknown')}")
-    
-    def _update_fed_summary(self, commit):
-        """Update FED repository summary."""
-        summary_file = Path(self.context_files.get('fed_summary', ''))
-        if not summary_file.exists():
-            logger.warning(f"FED summary file not found: {summary_file}")
-            return
-        
-        # TODO: Implement actual update logic
-        logger.info(f"Updating FED summary based on commit {commit.get('sha', 'unknown')}")
-    
-    def _update_tech_stack(self, commit, repo_key):
-        """Update tech stack documentation."""
-        tech_stack_file = Path(self.context_files.get('tech_stack', ''))
-        if not tech_stack_file.exists():
-            logger.warning(f"Tech stack file not found: {tech_stack_file}")
-            return
-        
-        # TODO: Implement actual update logic
-        # - Parse dependency files (pom.xml, package.json, etc.)
-        # - Update tech-stack.md with new dependencies
-        logger.info(f"Updating tech stack based on {repo_key} commit {commit.get('sha', 'unknown')}")
+            logger.error("GitHub get_commits failed for %s: %s", repo_key, e)
+            return []
+
+        if not commits:
+            return []
+
+        new_commits = []
+        for c in commits:
+            if last_sha and c.sha == last_sha:
+                break
+            new_commits.append({"sha": c.sha[:7], "message": (c.commit.message or "").split("\n")[0][:200], "date": c.commit.author.date.isoformat() if c.commit.author else ""})
+        if not new_commits:
+            logger.info("No new commits for %s", repo_key)
+            return []
+
+        try:
+            import state_manager
+            state[repo_key] = commits[0].sha
+            state_manager.save_state("code_last_commit", state, self._agent_dir)
+        except ImportError:
+            pass
+
+        rel = self.context_files.get("bed_summary" if repo_key == "bed" else "fed_summary", "")
+        if rel:
+            summary_path = self._resolve_path(rel)
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
+            header = f"# {repo_name} - Last commits\n\n"
+            section = "\n".join(f"- `{c['sha']}` {c['message']}" for c in new_commits[:15])
+            try:
+                existing = summary_path.read_text() if summary_path.exists() else ""
+                if "# Last commits" not in existing:
+                    content = (existing.strip() + "\n\n" + header + section + "\n").strip()
+                else:
+                    content = header + section + "\n"
+                summary_path.write_text(content)
+            except IOError as e:
+                logger.warning("Could not write summary %s: %s", summary_path, e)
+
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+        return [{"type": "Code Commit", "repository": f"{owner}/{repo_name}", "timestamp": ts, "commit": new_commits[0]["sha"], "change": f"{len(new_commits)} new commits", "context_updated": rel or repo_key}]
